@@ -25,6 +25,12 @@ var (
 	record = flag.Bool("record", false, "record the block headers that testdata/headers.json lacks from each chain's default RPCs")
 )
 
+// The SentinelOracle and Consensus of the deployment in testdata/gnosis.json.
+var (
+	fixtureOracle    = ethrpc.MustParseAddress("0x544F12bAd6FF72564abBc7eA6494A2a4BdD0DDD0")
+	fixtureConsensus = ethrpc.MustParseAddress("0x98810887769db19A0Df9bf2f44E4998856fcb390")
+)
+
 // fixture is a snapshot of a Gnosis Chain deployment as of a block, which it
 // serves as the latest block: the call results, logs, and block headers that
 // Pending and Request read. The deployment is fixtureOracle and
@@ -41,12 +47,6 @@ var (
 // on Gnosis Chain, and the latest block and the blocks that SearchBlock probes
 // on the other chains. Run TestRequest with -record to fetch the headers that
 // it lacks, such as after changing SearchBlock.
-// The SentinelOracle and Consensus of the deployment in testdata/gnosis.json.
-var (
-	fixtureOracle    = ethrpc.MustParseAddress("0x544F12bAd6FF72564abBc7eA6494A2a4BdD0DDD0")
-	fixtureConsensus = ethrpc.MustParseAddress("0x98810887769db19A0Df9bf2f44E4998856fcb390")
-)
-
 type fixture struct {
 	Block  ethrpc.BlockNumber `json:"block"`
 	Calls  []fixtureCall      `json:"calls"`
@@ -93,8 +93,9 @@ func loadFixture(t *testing.T) *fixture {
 	return &f
 }
 
-// open returns a Safenet that reads the fixture's deployment from a node serving
-// the fixture, and the other chains from nodes serving the recorded headers.
+// open returns a Safenet that reads the fixture's deployment from a node
+// serving the fixture, and the other chains from nodes serving the recorded
+// headers.
 func (f *fixture) open(t *testing.T) *Safenet {
 	t.Helper()
 	return New(f.dial(t), fixtureOracle, fixtureConsensus)

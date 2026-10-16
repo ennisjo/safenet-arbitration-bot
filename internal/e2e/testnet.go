@@ -347,8 +347,8 @@ func (n *Testnet) proposed(receipt *Receipt, tx *safenet.SafeTransaction, oracle
 	return r
 }
 
-// Commit commits the ballots, all in one block, since the commit window is
-// only a few blocks long.
+// Commit commits the ballots, all in one block, since the commit window is only
+// a few blocks long.
 func (n *Testnet) Commit(ballots ...Ballot) {
 	n.tb.Helper()
 	calls := make([]call, len(ballots))

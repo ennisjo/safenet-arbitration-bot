@@ -143,13 +143,26 @@ func (a *Anvil) Mine(n uint64) {
 	a.rpc(nil, "anvil_mine", ethrpc.Quantity(n), ethrpc.Quantity(a.BlockTime))
 }
 
-// MineUntil mines empty blocks, BlockTime seconds apart, until the latest block
-// is at or after t.
+// untilBlocks is the number of blocks before t that MineUntil spaces BlockTime
+// seconds apart, which is more than any node keeps the states of.
+const untilBlocks = 256
+
+// MineUntil mines empty blocks until the latest block is at or after t. The
+// last untilBlocks blocks before t are BlockTime seconds apart, and a single
+// block skips the time before them, since mining every block of a long time is
+// slow.
 func (a *Anvil) MineUntil(t time.Time) {
 	a.tb.Helper()
-	if latest := a.Header(uint64(a.blockNumber())).Time(); latest.Before(t) {
-		a.Mine(uint64(t.Sub(latest)/time.Second)/a.BlockTime + 1)
+	latest := a.Header(uint64(a.blockNumber())).Time()
+	if !latest.Before(t) {
+		return
 	}
+	if skip := t.Add(-untilBlocks * time.Duration(a.BlockTime) * time.Second); latest.Before(skip) {
+		a.rpc(nil, "evm_setNextBlockTimestamp", ethrpc.Quantity(skip.Unix()))
+		a.rpc(nil, "evm_mine")
+		latest = skip
+	}
+	a.Mine(uint64(t.Sub(latest)/time.Second)/a.BlockTime + 1)
 }
 
 // MineTo mines empty blocks until block is the latest block.
