@@ -1,0 +1,51 @@
+# Indexes the arbitrator's rulings into the rulings corpus with `arbot index`,
+# and commits the new corpus files and index back to the repository.
+name: index
+
+on:
+  schedule:
+    - cron: "0 * * * *" # Hourly
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Runs that overlap would index the same blocks, and the second push would fail.
+concurrency:
+  group: index
+  cancel-in-progress: false
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'corpus-index-main' || null }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ssh-key: ${{ secrets.CORPUS_BOT_SSH_KEY }}
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      # Index the rulings after the block in corpus/index.json, up to the latest
+      # finalized Gnosis Chain block, into corpus/.
+      - name: Index Rulings
+        run: go run ./cmd/arbot index -w
+
+      # Show what the run indexed, including new files, in the workflow's log.
+      - name: Show Changes
+        run: git add --intent-to-add corpus/ && git diff corpus/
+
+      # Commit the new corpus files and the index back to the repo. Only commit on
+      # main, so that the workflow can be tested on other branches without pushing
+      # to them.
+      - name: Commit Changes
+        if: ${{ github.ref_name == 'main' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add corpus/
+          git diff --staged --quiet || git commit -m "chore: index rulings"
+          git pull --rebase origin ${{ github.ref_name }}
+          git push

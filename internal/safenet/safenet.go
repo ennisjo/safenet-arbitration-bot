@@ -91,6 +91,64 @@ func (s *Safenet) connect(ctx context.Context) (*session, error) {
 	return &session{Safenet: s, eth: eth, block: block}, nil
 }
 
+// FinalizedBlock returns the latest finalized Gnosis Chain block.
+func (s *Safenet) FinalizedBlock(ctx context.Context) (uint64, error) {
+	q, err := s.connect(ctx)
+	if err != nil {
+		return 0, err
+	}
+	block, err := q.eth.FinalizedBlock(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("getting the finalized Gnosis Chain block: %w", err)
+	}
+	return uint64(block.Number), nil
+}
+
+// Rulings returns the requests that the arbitrator ruled on or marked out of
+// scope in blocks from to to, which must not be after the latest block, in the
+// order of the rulings. Timed out arbitrations aren't rulings, so they are left
+// out.
+//
+// The requests are read as of the latest block, as nodes may not have the state
+// of block to. A ruling settles a request for good, so this gives the same
+// requests as reading them as of block to would.
+func (s *Safenet) Rulings(ctx context.Context, from, to uint64) ([]*Request, error) {
+	q, err := s.connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if ethrpc.BlockNumber(to) > q.block {
+		return nil, fmt.Errorf("block %d is after the latest Gnosis Chain block %d", to, q.block)
+	}
+	var ids []ethrpc.Hash
+	logs := q.eth.ScanLogs(ctx, ethrpc.LogFilter{
+		FromBlock: ethrpc.BlockNumber(from),
+		ToBlock:   ethrpc.BlockNumber(to),
+		Addresses: []ethrpc.Address{s.oracle},
+		Topics:    [][]ethrpc.Hash{{disputeResolvedEvent, disputeOutOfScopeEvent}},
+	})
+	for log, err := range logs {
+		if err != nil {
+			return nil, fmt.Errorf("listing rulings: %w", err)
+		}
+		if log.Removed {
+			continue
+		}
+		if len(log.Topics) != 2 {
+			return nil, fmt.Errorf("listing rulings: log %d in block %d has %d topics, want 2", log.LogIndex, log.BlockNumber, len(log.Topics))
+		}
+		ids = append(ids, log.Topics[1])
+	}
+
+	requests := make([]*Request, len(ids))
+	for i, id := range ids {
+		if requests[i], err = q.request(ctx, id); err != nil {
+			return nil, err
+		}
+	}
+	return requests, nil
+}
+
 // Pending returns the disputes awaiting arbitration as of the latest block,
 // ordered by deadline. These are the frozen requests that the arbitrator can
 // still rule on before the deadline: as a dispute's deadline is the block it

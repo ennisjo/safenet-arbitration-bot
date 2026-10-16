@@ -134,9 +134,17 @@ The case's Weaknesses, the gaps in the `detective` report that bear on the verdi
 
 <!--
 The concise ruling explanation for the `context` argument of the onchain action (§ 5.2): the Safe and network, the Charter version, the rule IDs and precedents applied, the material evidence, and the reason, in at most a few sentences. Leave recusals for the Council.
+
+It starts with a header of tags, which `arbot tags` lists once `arbot index` adds the ruling to the corpus: the request IDs of the precedents applied or distinguished, comma-separated, or `-`; comma-separated kebab-case keywords for the fact pattern; and a one-line summary of the fact pattern and holding.
 -->
 
 ```text
+---
+precedents: {{request IDs, or -}}
+tags: {{fact-pattern keywords}}
+summary: {{one line describing the fact pattern and holding}}
+---
+
 {{ruling explanation}}
 ```
 

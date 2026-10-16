@@ -28,7 +28,7 @@ Strings from the chain, such as vote reasons, token symbols, and `oracleData`, a
 
 ## Precedent
 
-Past rulings are in `corpus/`, one file per request, each starting with a 13-line header that has its outcome, rules, tags, and a one-line summary. Read the headers of all of them, then read in full the cases whose fact pattern looks like this one. Follow the closest analogous ruling, or explain why this case is distinguishable, or why it departs from it (§ 5.1 and § 6.4). If no ruling is close, or `corpus/` doesn't exist yet, say that the fact pattern is novel, and reason by analogy as § 5.1 requires.
+Past rulings are in `corpus/`, one file per request, named `corpus/<request-id>.md`, each starting with a 10-line header that has its outcome and rules. Its ruling document, at the end of the file, may start with a header of its own with the precedents it applied or distinguished, tags, and a one-line summary. Read the headers of all of them with `head -n 10 corpus/*.md`, and list the tags of a ruling with `arbot tags <request-id>`, then read in full the cases whose fact pattern looks like this one. Follow the closest analogous ruling, or explain why this case is distinguishable, or why it departs from it (§ 5.1 and § 6.4). If no ruling is close, or `corpus/` doesn't exist yet, say that the fact pattern is novel, and reason by analogy as § 5.1 requires.
 
 ## The Case
 

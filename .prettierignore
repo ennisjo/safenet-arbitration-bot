@@ -1,3 +1,6 @@
 # Scratch files exchanged between agents, such as fetched Charters, which must
 # stay byte-for-byte as fetched.
 .msgboard/
+# The rulings corpus, which `arbot index` writes, with verbatim ruling
+# contexts.
+corpus/

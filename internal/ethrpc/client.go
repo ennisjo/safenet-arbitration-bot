@@ -160,6 +160,19 @@ func (c *Client) GetBlockByNumber(ctx context.Context, number BlockNumber) (Bloc
 	return *result, nil
 }
 
+// FinalizedBlock returns the header of the node's most recent finalized block
+// (eth_getBlockByNumber with the "finalized" tag), which a reorg can't remove.
+func (c *Client) FinalizedBlock(ctx context.Context) (Block, error) {
+	var result *Block
+	if err := c.RawRequest(ctx, &result, "eth_getBlockByNumber", "finalized", false); err != nil {
+		return Block{}, err
+	}
+	if result == nil {
+		return Block{}, errors.New("eth_getBlockByNumber: no finalized block")
+	}
+	return *result, nil
+}
+
 type request struct {
 	JSONRPC string `json:"jsonrpc"`
 	ID      uint64 `json:"id"`

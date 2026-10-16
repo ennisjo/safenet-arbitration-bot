@@ -32,8 +32,10 @@ var commands = map[string]struct {
 	"events":     {eventsCommand, "list the events that a transaction logged, on the Safe's chain of a Safenet request"},
 	"executions": {executionsCommand, "list the Safe transactions that the Safe of a Safenet request executed"},
 	"classify":   {classify, "classify a Safenet request with deterministic Charter checks"},
+	"index":      {indexCommand, "index the arbitrator's rulings into the rulings corpus"},
 	"info":       {info, "show a Safenet request, its proposal, votes, and arbitration"},
 	"pending":    {pending, "list the disputed Safenet requests awaiting arbitration"},
+	"tags":       {tags, "list the tags of a ruling in the rulings corpus"},
 	"transfers":  {transfers, "list the ERC-20 transfers out of the Safe of a Safenet request"},
 }
 

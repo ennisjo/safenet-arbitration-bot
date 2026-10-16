@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -197,6 +196,7 @@ type Receipt struct {
 	TransactionHash ethrpc.Hash        `json:"transactionHash"`
 	BlockNumber     ethrpc.BlockNumber `json:"blockNumber"`
 	Status          ethrpc.Quantity    `json:"status"`
+	GasUsed         ethrpc.Quantity    `json:"gasUsed"`
 	Logs            []ethrpc.Log       `json:"logs"`
 }
 
@@ -239,25 +239,33 @@ func (a *Anvil) Receipt(hash ethrpc.Hash) *Receipt {
 		a.tb.Fatalf("transaction %s is not mined", hash)
 	}
 	if r.Status != 1 {
-		a.tb.Fatalf("transaction %s reverted: %s", hash, a.revert(hash, r.BlockNumber))
+		a.tb.Fatalf("transaction %s reverted: %s", hash, a.revert(r))
 	}
 	return r
 }
 
-// revert returns why the transaction hash, which reverted in block, reverted,
-// by replaying it on the state before block.
-func (a *Anvil) revert(hash ethrpc.Hash, block ethrpc.BlockNumber) string {
+// revert returns what is known of why the transaction of receipt r reverted:
+// how much of its gas limit it used, as a transaction that used all of it ran
+// out of gas, and the error of a trace of it, if the node can trace it. A node
+// without history can't, as it needs the state before the block, as replaying
+// it with eth_call would.
+func (a *Anvil) revert(r *Receipt) string {
 	a.tb.Helper()
-	var tx map[string]any
-	a.rpc(&tx, "eth_getTransactionByHash", hash)
-	call := map[string]any{"from": tx["from"], "to": tx["to"], "data": tx["input"], "value": tx["value"]}
-	if err := a.RawRequest(a.tb.Context(), nil, "eth_call", call, block-1); err != nil {
-		if rpcErr, ok := errors.AsType[*ethrpc.Error](err); ok {
-			return fmt.Sprintf("%v (data %s)", err, rpcErr.Data)
-		}
-		return err.Error()
+	var tx struct {
+		Gas ethrpc.Quantity `json:"gas"`
 	}
-	return "replaying it succeeds"
+	a.rpc(&tx, "eth_getTransactionByHash", r.TransactionHash)
+	reason := fmt.Sprintf("used %d of its %d gas", r.GasUsed, tx.Gas)
+	var trace struct {
+		Error        string       `json:"error"`
+		RevertReason string       `json:"revertReason"`
+		Output       ethrpc.Bytes `json:"output"`
+	}
+	params := map[string]any{"tracer": "callTracer"}
+	if err := a.RawRequest(a.tb.Context(), &trace, "debug_traceTransaction", r.TransactionHash, params); err != nil {
+		return fmt.Sprintf("%s, and can't be traced: %v", reason, err)
+	}
+	return fmt.Sprintf("%s, with error %q, reason %q, and output %s", reason, trace.Error, trace.RevertReason, trace.Output)
 }
 
 // Transact sends a transaction, waits for it to be mined, and returns its

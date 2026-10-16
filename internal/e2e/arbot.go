@@ -20,6 +20,14 @@ type Arbot struct {
 // NewArbot returns an Arbot configured to read each node's chain from it.
 func NewArbot(tb testing.TB, nodes ...*Anvil) *Arbot {
 	tb.Helper()
+	return newArbot(tb, "", nodes...)
+}
+
+// newArbot returns an Arbot configured to read each node's chain from it, and
+// to fetch IPFS content from the gateway at the base URL gateway, unless it is
+// empty.
+func newArbot(tb testing.TB, gateway string, nodes ...*Anvil) *Arbot {
+	tb.Helper()
 	rpcs := make(map[uint64]string)
 	// The tests never use the public Safe Transaction Services, so the Safe
 	// Transaction Service is left out.
@@ -28,15 +36,19 @@ func NewArbot(tb testing.TB, nodes ...*Anvil) *Arbot {
 		rpcs[node.ChainID()] = node.URL
 		services[node.ChainID()] = ""
 	}
-	data, err := json.Marshal(map[string]any{"rpcs": rpcs, "txServices": services})
+	config := map[string]any{"rpcs": rpcs, "txServices": services}
+	if gateway != "" {
+		config["ipfs"] = gateway
+	}
+	data, err := json.Marshal(config)
 	if err != nil {
 		tb.Fatal(err)
 	}
-	config := filepath.Join(tb.TempDir(), "config.json")
-	if err := os.WriteFile(config, data, 0o644); err != nil {
+	path := filepath.Join(tb.TempDir(), "config.json")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
 		tb.Fatal(err)
 	}
-	return &Arbot{config: config}
+	return &Arbot{config: path}
 }
 
 // Run runs arbot with args, and returns its stdout. It fails the test if arbot

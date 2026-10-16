@@ -45,6 +45,8 @@ This bot helps the Safenet Security Council arbitrate disputed Safenet transacti
   - `arbot transfers [-json] [-to <address>] [-blocks N] -request-file <path>` lists the ERC-20 transfers out of the Safe of a request that `arbot info -json` wrote, read from the Safe's chain as of its `safeBlock`: the `Transfer` events of any token that has the Safe as sender, in the last `-blocks` blocks up to `safeBlock` (default 100,000), or only those to `-to`. It scans that range only, and reports it, so a transfer before it isn't listed. The events show that a token moved, not why: an account with an allowance can move tokens out of the Safe without it making a transaction. Native and ERC-721 transfers aren't listed. It prints a table of block, transaction, token, recipient, and value in the token's smallest unit, or with `-json`, `{"safe", "chainId", "fromBlock", "toBlock", "to", "transfers": [{"type": "erc20", "block", "txHash", "logIndex", "token", "from", "to", "value"}]}`, where `to` is left out unless `-to` is set, and `type` says what moved so that other kinds can be added.
   - `arbot executions [-json] [-blocks N] -request-file <path>` lists the Safe transactions that the Safe of a request executed, read from the Safe's chain as of its `safeBlock`: the `ExecutionSuccess` and `ExecutionFailure` events of the Safe in the last `-blocks` blocks up to `safeBlock` (default 100,000). It scans that range only, and reports it, so an execution before it isn't listed. Executions by modules aren't listed. The events only have the hash of each Safe transaction, so it decodes the transaction from the first source that has one with that hash, and reports the source: `event` (the `SafeMultiSigTransaction` event of SafeL2), `calldata` (of the onchain transaction, if it calls `execTransaction` on the Safe), `trace` (of the onchain transaction, with `debug_traceTransaction` and the `callTracer`, for the calls to `execTransaction` that it makes, which needs a node that serves it), and `service` (the Safe Transaction Service, an offchain source). It reports a transaction only if its EIP-712 hash is the one that the Safe logged, so no source can misreport what was executed. The calldata and traces have no nonce, so it is worked out from the Safe's nonce at `safeBlock`, since every execution uses one. If no source has the transaction, it is an unknown transaction. It prints a table of block, onchain transaction, result, Safe transaction hash, and source, nonce, target, value, operation, and the selector and length of the data of each, or with `-json`, `{"safe", "chainId", "fromBlock", "toBlock", "executions": [{"block", "txHash", "logIndex", "safeTxHash", "success", "payment", "source", "transaction"}]}`, where `transaction` is the Safe transaction with all of its fields and data, or `null` and no `source` if it is unknown.
   - `arbot events [-json] -request-file <path> <transaction-hash>` lists the events that a transaction logged, read from the Safe's chain of a request that `arbot info -json` wrote, as of its `safeBlock`. It fails for a transaction in a later block, since its events aren't evidence of the proposal. Each log has its emitter, topics, and data, and, if it is a well-known event of an ERC-20 or ERC-721 token, WETH, or a Safe 1.3.0, 1.4.1, or 1.5.0 (`internal/events`), its name, signature, and arguments. Logs are decoded by their signature only, and any contract can emit a log with the signature of a well-known event, so the emitter matters. A transaction that reverted has no events. It prints the transaction's block, status, sender, and target, then each log, with data over 36 bytes shortened, or with `-json`, `{"chainId", "safeBlock", "txHash", "block", "status": "success" | "reverted", "from", "to", "events": [{"logIndex", "emitter", "topics", "data", "event": null | {"name", "signature", "args": [{"name", "type", "value"}]}}]}`, where `to` is null for a contract creation.
+  - `arbot index [-w] [-corpus <dir>] [-block N]` indexes the arbitrator's rulings into the [rulings corpus](#rulings-corpus) in `<dir>` (default `corpus`): the requests with a `DisputeResolved` or `DisputeOutOfScope` event of the oracle after the block in the corpus's `index.json`, up to `-block` (default: the latest finalized Gnosis Chain block). It writes a corpus file for each, and moves the index to `-block`. It reads the requests as of the latest block, which gives the same requests as reading them at `-block`, since a ruling settles a request for good, so its output depends only on the blocks up to `-block` and the corpus. Without `-w`, it prints the corpus files and the index that it would write, each after a `==> <path> <==` line. With `-w`, it writes them, the index last. It keeps a corpus file that already exists with the same content, and fails if one exists with other content, before it writes anything.
+  - `arbot tags [-json] [-corpus <dir>] <request-id>` lists the tags of the ruling on a request in the corpus in `<dir>` (default `corpus`): the `key: value` lines of the file's header, then, after an empty line, those of the header that its ruling document starts with, if it has one (see [Rulings Corpus](#rulings-corpus)). With `-json`, it writes `{"header": {...}, "document": {...}}`, each an object of tags by key.
 
   Flags must come before a request ID.
 
@@ -52,14 +54,14 @@ This bot helps the Safenet Security Council arbitrate disputed Safenet transacti
 - **Agent layer**: `claude` and `codex` for now. Agents get their data by shelling out to `arbot`. They must not reimplement chain reads or checks in ad-hoc scripts, such as with `cast` or `curl`. When `arbot` can't provide some evidence, they report it as a gap, and the `add-evidence` skill adds the command that provides it, so that an arbitration can be done with `arbot` alone. Agent skills live in `skills/<name>/SKILL.md`, with `.claude/skills` and `.codex/skills` symlinked to that directory. The `add-check` skill adds a deterministic check, `add-evidence` adds an `arbot` command that gathers evidence, `add-subagent` adds a sub-agent, and `arbitrate` drafts a ruling for a request: it classifies the request with `arbot classify`, and if the checks can't, runs the sub-agents to build and review a case, then fills in the template `skills/arbitrate/report.md` in `.msgboard/<first 12 characters of the request ID>/`. Sub-agents are described under [Agents](#agents).
 - **Future direction**: using a general-purpose coding agent is a stopgap. The plan is to move to a purpose-built arbitration agent (for example, on Google's ADK) with a narrow toolset backed by the same `arbot` commands. Build tooling so that move is easy: stable CLI output (JSON where machines consume it) and no dependence on one agent's quirks.
 
-### GitHub workflows (planned)
+### GitHub workflows
 
-- **Arbitrate** (`workflow_dispatch`, input `request_id`): fetches the request, then runs the deterministic checks. If a check fails, it drafts the ruling from that failure. Otherwise it runs the agent with the relevant corpus precedents. It then opens an issue with the classification and the draft ruling for Council review.
-- **Index** (daily `cron`): scans `DisputeResolved` and `DisputeOutOfScope` events since the last indexed block, fetches any IPFS `context`, and writes corpus records. It opens a PR so a human can review any LLM-written summaries or tags.
+- **Arbitrate** (planned, `workflow_dispatch`, input `request_id`): fetches the request, then runs the deterministic checks. If a check fails, it drafts the ruling from that failure. Otherwise it runs the agent with the relevant corpus precedents. It then opens an issue with the classification and the draft ruling for Council review.
+- **Index** (`.github/workflows/index.yml`, hourly `cron` and `workflow_dispatch`): runs `arbot index -w`, and on `main`, commits the new corpus files and index and pushes them, with the `CORPUS_BOT_SSH_KEY` deploy key of the `corpus-index-main` environment. On other branches, it indexes without committing, to test the workflow.
 
 ## Rulings Corpus
 
-`corpus/` holds one Markdown file per onchain-recorded arbitration outcome, named `corpus/<requestId>.md`. Every file starts with a header that has **exactly 13 lines**. Agents can therefore scan all past cases with `head -n 13 corpus/*.md` and then read in full only the cases that look relevant.
+`corpus/` holds one Markdown file per onchain-recorded arbitration outcome, named `corpus/<requestId>.md`. Every file starts with a header that has **exactly 10 lines**. Agents can therefore scan all past cases with `head -n 10 corpus/*.md`, list the tags of a case with `arbot tags <request-id>`, and then read in full only the cases that look relevant.
 
 ```
 ---
@@ -71,19 +73,30 @@ safe: 0x<Safe address>
 charter: <IPFS CID of applicable Charter version>
 proposed: <ISO-8601 UTC proposal time>
 record: 0x<Gnosis Chain tx hash of resolveDispute/markOutOfScope>
-precedents: <comma-separated request IDs applied or distinguished, or ->
-tags: <comma-separated kebab-case fact-pattern keywords>
-summary: <one line describing the fact pattern and holding>
 ---
 ```
 
 Rules for the header:
 
 - Every key is always present, in this order, on a single line. Use `-` when a field is empty.
-- Headers are generated and validated by `arbot`, not written by hand.
-- If the header format changes, change the line count here, in the tool, and in the skills together.
+- Headers are generated by `arbot index`, not written by hand. It fills in `rules` with the rule IDs, such as `R-4.1`, that the ruling document cites, in the order they are first cited.
+- If the header format changes, change the line count here, in the tool, and in the skills and agents together.
 
-The body follows the header. It contains the decoded transaction, the sentinel votes and reasons, the verbatim ruling `context` (or the fetched IPFS document), and any analysis notes.
+The body follows the header: the proposal, the decoded Safe transaction, the sentinel votes and reasons, and the ruling. Then a `<!-- DOCUMENT START -->` line and a `---` line, followed by an empty line, start the ruling document: the IPFS document that the ruling's `context` references, or the `context` itself if it is the ruling text. Everything after them is the document, verbatim. Prettier ignores `corpus/`, since its files must stay as `arbot index` writes them.
+
+The ruling document may start with a header of its own, delimited by `---` lines like the file's header, with one `key: value` tag per line, such as:
+
+```
+---
+precedents: <comma-separated request IDs applied or distinguished, or ->
+tags: <comma-separated kebab-case fact-pattern keywords>
+summary: <one line describing the fact pattern and holding>
+---
+```
+
+The Council writes these tags in the ruling, so they are only as accurate as the ruling. `arbot tags` lists them after the file's header tags. A document whose header is malformed, such as one with a YAML list, has no tags.
+
+`corpus/index.json` is `{"block": N}`, where `N` is the last Gnosis Chain block whose rulings are in the corpus. The corpus starts at the block of Wednesday, October 14, 2026, 00:00:00 UTC (48,743,477), so the empty corpus has the block before it.
 
 ## Sub-agents
 

@@ -34,6 +34,8 @@ type Testnet struct {
 	// nonce is the nonce of the last Safe transaction, which keeps proposals
 	// distinct.
 	nonce uint64
+	// gateway is the IPFS gateway that ServeIPFS starts, or nil.
+	gateway *gateway
 }
 
 // safe is the Safe that proposes the transactions, on both chains.
@@ -165,13 +167,18 @@ func (n *Testnet) ExecCalldata(tx *safenet.SafeTransaction, owner ethrpc.Address
 	)
 }
 
-// Arbot returns an Arbot configured to read both nodes. It first mines Mainnet
-// blocks up to the time of the latest Gnosis Chain block, so that arbot finds
-// the Mainnet block before each proposal.
+// Arbot returns an Arbot configured to read both nodes, and the IPFS gateway of
+// ServeIPFS if the test serves content. It first mines Mainnet blocks up to the
+// time of the latest Gnosis Chain block, so that arbot finds the Mainnet block
+// before each proposal.
 func (n *Testnet) Arbot() *Arbot {
 	n.tb.Helper()
 	n.Mainnet.MineUntil(n.Header(uint64(n.blockNumber())).Time())
-	return NewArbot(n.tb, n.Anvil, n.Mainnet)
+	var url string
+	if n.gateway != nil {
+		url = n.gateway.URL
+	}
+	return newArbot(n.tb, url, n.Anvil, n.Mainnet)
 }
 
 // calldata returns the calldata for calling the function with signature, such
@@ -395,14 +402,25 @@ type call struct {
 	data     ethrpc.Bytes
 }
 
+// oneBlockGas is the gas limit of each transaction that transactInOneBlock
+// sends, which is ample for any of them, and leaves room for several in a
+// block.
+const oneBlockGas = 2_000_000
+
 // transactInOneBlock sends the calls, mines them in one block, in order, and
 // returns their receipts. It fails the test if any of them reverted.
+//
+// The transactions have a fixed gas limit, since anvil estimates the gas of
+// each against the state before the block, without the transactions before it.
+// For example, the last reveal of a request also finalizes it, which its
+// estimate leaves out.
 func (n *Testnet) transactInOneBlock(calls ...call) []*Receipt {
 	n.tb.Helper()
 	hashes := make([]ethrpc.Hash, len(calls))
 	n.SetAutomine(false)
 	for i, c := range calls {
-		hashes[i] = n.Send(c.from, c.to, c.data, nil)
+		tx := map[string]any{"from": c.from, "to": c.to, "data": c.data, "gas": ethrpc.Quantity(oneBlockGas)}
+		n.rpc(&hashes[i], "eth_sendTransaction", tx)
 	}
 	n.MinePending()
 	n.SetAutomine(true)

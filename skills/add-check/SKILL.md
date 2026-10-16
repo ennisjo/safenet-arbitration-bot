@@ -18,7 +18,7 @@ Before writing any code, make sure you have:
 
 - **The case**: the class of calls the check decides, and the verdict it returns for them: `insecure` under a rule ID such as `R-4.1`, `out-of-scope` under § 3.9, or `secure`.
 - **The Charter text**: the rule, its exceptions, and the definitions it uses, from the Charter version that applies to the requests the check is for. Fetch it with `arbot charter`, or `arbot charter -request-file <path>` for a request that `arbot info -json` wrote.
-- **Example requests**, if any: IDs of requests that the check should decide, and of similar ones that it should abstain on. Past rulings in `corpus/` are a good source: scan them with `head -n 13 corpus/*.md`.
+- **Example requests**, if any: IDs of requests that the check should decide, and of similar ones that it should abstain on. Past rulings in `corpus/` are a good source: scan them with `head -n 10 corpus/*.md`, and list the tags of one with `arbot tags <request-id>`.
 
 Ask the user for any input that the request doesn't settle. Don't guess a rule ID, an exception, or a verdict.
 
