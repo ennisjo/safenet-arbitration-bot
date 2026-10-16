@@ -3,7 +3,6 @@ package e2e
 import (
 	"fmt"
 	"math/big"
-	"slices"
 	"testing"
 	"time"
 
@@ -15,10 +14,8 @@ import (
 
 var (
 	transactionProposedEvent = solabi.Event("TransactionProposed(bytes32,bytes32,address,uint64,bytes,(uint256,address,address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,uint256))")
-	// The deployed oracle's NewRequest has no DAO fee share, unlike the one in the
-	// Safenet repository.
-	newRequestEvent       = solabi.Event("NewRequest(bytes32,address,uint96,uint96,uint96,uint64,uint64)")
-	disputeTriggeredEvent = solabi.Event("DisputeTriggered(bytes32,uint64)")
+	newRequestEvent          = solabi.Event("NewRequest(bytes32,address,uint96,uint96,uint24,uint96,uint64,uint64)")
+	disputeTriggeredEvent    = solabi.Event("DisputeTriggered(bytes32,uint64)")
 )
 
 // Testnet runs Safenet requests on anvil. It embeds the Gnosis Chain node.
@@ -261,18 +258,16 @@ func (n *Testnet) Propose(oracleData []byte) *Request {
 func (n *Testnet) ProposeInOneBlock(oracleData ...[]byte) []*Request {
 	n.tb.Helper()
 	txs := make([]*safenet.SafeTransaction, len(oracleData))
-	hashes := make([]ethrpc.Hash, len(oracleData))
-	n.SetAutomine(false)
+	calls := make([]call, len(oracleData))
 	for i, data := range oracleData {
 		txs[i] = n.transaction()
-		hashes[i] = n.Send(n.Sponsor, n.Artifacts.Consensus, n.proposal(txs[i], data), nil)
+		calls[i] = call{n.Sponsor, n.Artifacts.Consensus, n.proposal(txs[i], data)}
 	}
-	n.MinePending()
-	n.SetAutomine(true)
+	receipts := n.transactInOneBlock(calls...)
 
 	requests := make([]*Request, len(oracleData))
 	for i, data := range oracleData {
-		requests[i] = n.proposed(n.Receipt(hashes[i]), txs[i], data)
+		requests[i] = n.proposed(receipts[i], txs[i], data)
 		if requests[i].Block != requests[0].Block {
 			n.tb.Fatalf("proposals are in blocks %d and %d, want the same block", requests[0].Block, requests[i].Block)
 		}
@@ -342,8 +337,8 @@ func (n *Testnet) proposed(receipt *Receipt, tx *safenet.SafeTransaction, oracle
 		OracleData:     oracleData,
 		SafeTxHash:     proposal.Topics[1],
 		Transaction:    tx,
-		CommitDeadline: d.Uint64(3),
-		RevealDeadline: d.Uint64(4),
+		CommitDeadline: d.Uint64(4),
+		RevealDeadline: d.Uint64(5),
 		Revealed:       make(map[ethrpc.Address]bool),
 	}
 	if err := d.Err(); err != nil {
@@ -352,56 +347,80 @@ func (n *Testnet) proposed(receipt *Receipt, tx *safenet.SafeTransaction, oracle
 	return r
 }
 
-// Commit commits the ballots.
+// Commit commits the ballots, all in one block, since the commit window is
+// only a few blocks long.
 func (n *Testnet) Commit(ballots ...Ballot) {
 	n.tb.Helper()
-	for _, b := range ballots {
+	calls := make([]call, len(ballots))
+	for i, b := range ballots {
 		approve := []byte{0}
 		if b.Approve {
 			approve[0] = 1
 		}
 		salt := b.salt()
 		hash := keccak256.Hash(approve, salt[:], b.Sentinel[:], b.Request.ID[:], []byte(b.Reason))
-		n.Transact(b.Sentinel, n.Artifacts.Oracle, calldata("commit(bytes32,bytes32)", b.Request.ID, ethrpc.Hash(hash)))
+		calls[i] = call{b.Sentinel, n.Artifacts.Oracle, calldata("commit(bytes32,bytes32)", b.Request.ID, ethrpc.Hash(hash))}
 		b.Request.Ballots = append(b.Request.Ballots, b)
 	}
+	n.transactInOneBlock(calls...)
 }
 
-// Vote commits the ballots, reveals them once the commit window has closed, and
-// finalizes their requests once the reveal window has closed. Unlike in the
-// Safenet repository, the deployed oracle doesn't finalize a request when the
-// last committed vote on it is revealed.
+// Vote commits the ballots, and reveals them all in one block once the commit
+// window has closed. The oracle finalizes a request when the last committed
+// vote on it is revealed, so the ballots must be every vote on their requests.
 func (n *Testnet) Vote(ballots ...Ballot) {
 	n.tb.Helper()
 	n.Commit(ballots...)
-	var requests []*Request
-	var commitDeadline, revealDeadline uint64
+	var commitDeadline uint64
 	for _, b := range ballots {
-		if !slices.Contains(requests, b.Request) {
-			requests = append(requests, b.Request)
-		}
 		commitDeadline = max(commitDeadline, b.Request.CommitDeadline)
-		revealDeadline = max(revealDeadline, b.Request.RevealDeadline)
 	}
 	n.MineTo(commitDeadline + 1)
 
-	for _, b := range ballots {
-		r := b.Request
-		n.Transact(b.Sentinel, n.Artifacts.Oracle,
-			calldata("reveal(bytes32,bool,bytes32,string)", r.ID, b.Approve, b.salt(), b.Reason))
-		r.Revealed[b.Sentinel] = true
+	calls := make([]call, len(ballots))
+	for i, b := range ballots {
+		calls[i] = call{b.Sentinel, n.Artifacts.Oracle,
+			calldata("reveal(bytes32,bool,bytes32,string)", b.Request.ID, b.Approve, b.salt(), b.Reason)}
 	}
-	n.MineTo(revealDeadline + 1)
+	for i, receipt := range n.transactInOneBlock(calls...) {
+		r := ballots[i].Request
+		r.Revealed[ballots[i].Sentinel] = true
+		r.finalized(receipt)
+	}
+}
 
-	for _, r := range requests {
-		r.Finalize()
+// call is a transaction that from sends to to with data.
+type call struct {
+	from, to ethrpc.Address
+	data     ethrpc.Bytes
+}
+
+// transactInOneBlock sends the calls, mines them in one block, in order, and
+// returns their receipts. It fails the test if any of them reverted.
+func (n *Testnet) transactInOneBlock(calls ...call) []*Receipt {
+	n.tb.Helper()
+	hashes := make([]ethrpc.Hash, len(calls))
+	n.SetAutomine(false)
+	for i, c := range calls {
+		hashes[i] = n.Send(c.from, c.to, c.data, nil)
 	}
+	n.MinePending()
+	n.SetAutomine(true)
+	receipts := make([]*Receipt, len(calls))
+	for i, hash := range hashes {
+		receipts[i] = n.Receipt(hash)
+	}
+	return receipts
 }
 
 // Finalize finalizes the request, recording the block if it freezes it.
 func (r *Request) Finalize() {
 	r.n.tb.Helper()
-	receipt := r.n.Transact(r.n.Sponsor, r.n.Artifacts.Oracle, calldata("finalize(bytes32)", r.ID))
+	r.finalized(r.n.Transact(r.n.Sponsor, r.n.Artifacts.Oracle, calldata("finalize(bytes32)", r.ID)))
+}
+
+// finalized records the block of the receipt if it froze the request.
+func (r *Request) finalized(receipt *Receipt) {
 	if _, ok := receipt.Log(r.n.Artifacts.Oracle, disputeTriggeredEvent); ok {
 		r.FrozenBlock = uint64(receipt.BlockNumber)
 	}

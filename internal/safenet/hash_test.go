@@ -35,12 +35,12 @@ func TestSafeTransactionHash(t *testing.T) {
 }
 
 func TestRequestID(t *testing.T) {
-	// A request on the Gnosis Chain deployment.
+	// A request on the deployment in testdata/gnosis.json.
 	got := requestID(
 		ethrpc.Gnosis,
-		DefaultConsensus,
+		fixtureConsensus,
 		161285,
-		DefaultOracle,
+		fixtureOracle,
 		nil,
 		mustParseHash("0xea6f04a866f107949f795b60dbcbe9563ab67ee232bbb14c7b85644dc9fce221"),
 	)

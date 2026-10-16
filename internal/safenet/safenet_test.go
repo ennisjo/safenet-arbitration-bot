@@ -25,9 +25,11 @@ var (
 	record = flag.Bool("record", false, "record the block headers that testdata/headers.json lacks from each chain's default RPCs")
 )
 
-// fixture is a snapshot of the Gnosis Chain deployment as of a block, which it
+// fixture is a snapshot of a Gnosis Chain deployment as of a block, which it
 // serves as the latest block: the call results, logs, and block headers that
-// Pending and Request read.
+// Pending and Request read. The deployment is fixtureOracle and
+// fixtureConsensus, an earlier default deployment, which has requests in every
+// state.
 //
 // testdata/gnosis.json was recorded through a JSON-RPC proxy in front of
 // https://rpc.gnosischain.com, while running `arbot pending` and `arbot info`
@@ -39,6 +41,12 @@ var (
 // on Gnosis Chain, and the latest block and the blocks that SearchBlock probes
 // on the other chains. Run TestRequest with -record to fetch the headers that
 // it lacks, such as after changing SearchBlock.
+// The SentinelOracle and Consensus of the deployment in testdata/gnosis.json.
+var (
+	fixtureOracle    = ethrpc.MustParseAddress("0x544F12bAd6FF72564abBc7eA6494A2a4BdD0DDD0")
+	fixtureConsensus = ethrpc.MustParseAddress("0x98810887769db19A0Df9bf2f44E4998856fcb390")
+)
+
 type fixture struct {
 	Block  ethrpc.BlockNumber `json:"block"`
 	Calls  []fixtureCall      `json:"calls"`
@@ -85,11 +93,11 @@ func loadFixture(t *testing.T) *fixture {
 	return &f
 }
 
-// open returns a Safenet that reads the default deployment from a node serving
+// open returns a Safenet that reads the fixture's deployment from a node serving
 // the fixture, and the other chains from nodes serving the recorded headers.
 func (f *fixture) open(t *testing.T) *Safenet {
 	t.Helper()
-	return New(f.dial(t), DefaultOracle, DefaultConsensus)
+	return New(f.dial(t), fixtureOracle, fixtureConsensus)
 }
 
 // dial returns a Dialer for a node that serves the fixture on Gnosis Chain, and
@@ -585,12 +593,12 @@ func TestRequestDialError(t *testing.T) {
 		}
 		return nil, errors.New("no RPC")
 	}
-	sn := New(dial, DefaultOracle, DefaultConsensus)
+	sn := New(dial, fixtureOracle, fixtureConsensus)
 	wantError(t, sn, frozenID, "connecting to chain 1: no RPC")
 	wantError(t, sn, frozenID, "connecting to chain 42161: no RPC")
 
 	// Nothing can be reached.
-	sn = New(func(context.Context, uint64) (*ethrpc.Client, error) { return nil, errors.New("no RPC") }, DefaultOracle, DefaultConsensus)
+	sn = New(func(context.Context, uint64) (*ethrpc.Client, error) { return nil, errors.New("no RPC") }, fixtureOracle, fixtureConsensus)
 	wantError(t, sn, frozenID, "connecting to Gnosis Chain: no RPC")
 	if _, err := sn.Pending(t.Context()); err == nil || !strings.Contains(err.Error(), "connecting to Gnosis Chain: no RPC") {
 		t.Errorf("Pending: got error %v, want one saying that Gnosis Chain can't be reached", err)
@@ -607,7 +615,7 @@ func TestRequestNotFound(t *testing.T) {
 
 func TestRequestWrongConsensus(t *testing.T) {
 	f := loadFixture(t)
-	sn := New(f.dial(t), DefaultOracle, ethrpc.Address{19: 1})
+	sn := New(f.dial(t), fixtureOracle, ethrpc.Address{19: 1})
 	wantError(t, sn, frozenID, "has PROPOSER")
 }
 

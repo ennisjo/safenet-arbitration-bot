@@ -236,14 +236,14 @@ func fetch(ctx context.Context) (*Artifacts, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Slot 0 maps group IDs to groups. A group's state is in its sixth slot:
+	// Slot 0 maps group IDs to groups. A group's state is in its fifth slot:
 	// status, count, and threshold, packed from the lowest-order byte, with status
 	// 5 being FINALIZED. Its key's coordinates follow.
 	group := mappingSlot(a.GroupID, 0)
 	const finalized, count, threshold = 5, 2, 2
-	coordinator.Storage[offset(group, 5)] = solabi.Uint64(finalized | count<<8 | threshold<<24)
-	coordinator.Storage[offset(group, 6)] = generatorX
-	coordinator.Storage[offset(group, 7)] = generatorY
+	coordinator.Storage[offset(group, 4)] = solabi.Uint64(finalized | count<<8 | threshold<<24)
+	coordinator.Storage[offset(group, 5)] = generatorX
+	coordinator.Storage[offset(group, 6)] = generatorY
 	a.Accounts[a.Coordinator] = coordinator
 
 	token, err := mainnet.account(ctx, weth9)
