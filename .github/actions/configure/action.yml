@@ -1,0 +1,50 @@
+# Writes an Arbot configuration file with the given RPC nodes and IPFS gateway,
+# such as from a workflow's secrets, since the public ones rate limit runs. An
+# input that is empty leaves the default in place.
+name: Configure Arbot
+description: Writes an Arbot configuration file, and outputs its path.
+
+inputs:
+  mainnet-rpc-url:
+    description: >-
+      The Ethereum Mainnet RPC URL. It must be an archive node, to resolve the
+      Charter at past blocks.
+    default: ""
+  gnosis-rpc-url:
+    description: The Gnosis Chain RPC URL.
+    default: ""
+  arbitrum-rpc-url:
+    description: The Arbitrum One RPC URL.
+    default: ""
+  ipfs-gateway-url:
+    description: The base URL of the IPFS HTTP gateway.
+    default: ""
+
+outputs:
+  path:
+    description: The path of the configuration file, to pass to `arbot -config`.
+    value: ${{ steps.configure.outputs.path }}
+
+runs:
+  using: composite
+  steps:
+    # The inputs go through the environment, not into the script, so that their
+    # values can't inject commands.
+    - id: configure
+      shell: bash
+      env:
+        MAINNET_RPC_URL: ${{ inputs.mainnet-rpc-url }}
+        GNOSIS_RPC_URL: ${{ inputs.gnosis-rpc-url }}
+        ARBITRUM_RPC_URL: ${{ inputs.arbitrum-rpc-url }}
+        IPFS_GATEWAY_URL: ${{ inputs.ipfs-gateway-url }}
+      run: |
+        path="$RUNNER_TEMP/arbot.config.json"
+        jq -n '{
+          rpcs: {
+            "1": env.MAINNET_RPC_URL,
+            "100": env.GNOSIS_RPC_URL,
+            "42161": env.ARBITRUM_RPC_URL
+          } | with_entries(select(.value != "")),
+          ipfs: env.IPFS_GATEWAY_URL
+        }' > "$path"
+        echo "path=$path" >> "$GITHUB_OUTPUT"

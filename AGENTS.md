@@ -58,6 +58,7 @@ This bot helps the Safenet Security Council arbitrate disputed Safenet transacti
 
 - **Arbitrate** (planned, `workflow_dispatch`, input `request_id`): fetches the request, then runs the deterministic checks. If a check fails, it drafts the ruling from that failure. Otherwise it runs the agent with the relevant corpus precedents. It then opens an issue with the classification and the draft ruling for Council review.
 - **Index** (`.github/workflows/index.yml`, hourly `cron` and `workflow_dispatch`): runs `arbot index -w`, and on `main`, commits the new corpus files and index and pushes them, with the `CORPUS_BOT_SSH_KEY` deploy key of the `corpus-index-main` environment. On other branches, it indexes without committing, to test the workflow.
+- **Configure** (`.github/actions/configure`): a composite action for workflows that run `arbot`. It writes a configuration file with the RPC URLs of Ethereum Mainnet (an archive node), Gnosis Chain, and Arbitrum One, and the IPFS gateway URL, that it is given, leaving out those that are empty, and outputs its path for `arbot -config`. Workflows pass it the `MAINNET_RPC_URL`, `GNOSIS_RPC_URL`, `ARBITRUM_RPC_URL`, and `IPFS_GATEWAY_URL` secrets, since public RPCs and gateways rate limit runs, and work without them.
 
 ## Rulings Corpus
 

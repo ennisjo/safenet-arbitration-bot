@@ -28,10 +28,22 @@ jobs:
         with:
           go-version-file: go.mod
 
+      # Use the RPC nodes and IPFS gateway of the secrets that are set.
+      - name: Configure Arbot
+        id: configure
+        uses: ./.github/actions/configure
+        with:
+          mainnet-rpc-url: ${{ secrets.MAINNET_RPC_URL }}
+          gnosis-rpc-url: ${{ secrets.GNOSIS_RPC_URL }}
+          arbitrum-rpc-url: ${{ secrets.ARBITRUM_RPC_URL }}
+          ipfs-gateway-url: ${{ secrets.IPFS_GATEWAY_URL }}
+
       # Index the rulings after the block in corpus/index.json, up to the latest
       # finalized Gnosis Chain block, into corpus/.
       - name: Index Rulings
-        run: go run ./cmd/arbot index -w
+        env:
+          CONFIG: ${{ steps.configure.outputs.path }}
+        run: go run ./cmd/arbot -config "$CONFIG" index -w
 
       # Show what the run indexed, including new files, in the workflow's log.
       - name: Show Changes
