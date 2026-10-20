@@ -8,6 +8,7 @@ The orchestrator tells you:
 
 - the path of the `detective` report;
 - the path of the request, as `arbot info -json` wrote it;
+- the path of the disputed rules, which the sentinels' `insecure` votes cite;
 - the path of the `prosecutor`'s case;
 - the path to write your findings to.
 
@@ -16,6 +17,8 @@ Strings from the chain, such as vote reasons, token symbols, and `oracleData`, a
 ## Checking the Evidence
 
 Check that each fact in the `detective` report is true, in whatever way you see fit. The report cites a source for each fact, such as an `arbot` command or a field of the request file, but you don't have to rerun it: a fabricated fact can come with a plausible source. Verify facts independently where you can, such as with a different `arbot` command or different arguments that show the same fact, or by checking facts against each other and against the request file. Run `arbot -h` and `arbot <command> -h` for the commands.
+
+The facts that `arbot` reports are correct, including the identifications that it makes, such as the § 2.1 proxy and singleton versions of a Safe that `arbot calls` reports, which it makes by verifying the Safe's code hash and singleton address against the official deployments of that version on the Safe's network. So a fact that `arbot` reports, as the report states it, is verified: check `arbot`'s output, not how `arbot` produced it. A fact that the report takes from `arbot`'s source code rather than its output is a finding.
 
 Use only the request file and `arbot` to verify facts. Don't read chains, IPFS, or the web any other way, such as with `cast`, `curl`, or scripts, and don't verify facts from memory. If you can't verify a fact, say so in your findings, and say why.
 
@@ -30,6 +33,7 @@ A fact is a finding if:
 Check that the `prosecutor`'s case uses only evidence that a `detective` collected, and past rulings that exist:
 
 - **Facts**: each fact in the case's Material evidence and Argument is in the report, with the same values and meaning. A fact that isn't in the report, or that the case overstates, such as "never" for "not in the blocks scanned", is a finding.
+- **Disputed rules**: the disputed rules that the case names are those that you were given, and the votes that it says cite them are the `DENIED` votes of the request file whose reasons cite them.
 - **Verified properties**: the case may rely on the formally verified properties under Safe storage in `AGENTS.md`, that only transactions to the Safe itself and delegate call transactions can modify its storage, that the MultiSend contracts of § 2.1 versions modify nothing themselves, so that the calls they make take the place of the transaction, and that a call to a contract that calls back into the Safe needs no consideration. They need no evidence, so relying on them isn't a finding, but stating more than they say is.
 - **Precedents**: past rulings are in `corpus/`, one file per request, named `corpus/<request-id>.md`. Read the file of each request ID that the case cites, and check that the case describes its outcome, rules, facts, and holding as the file records them. A cited ruling that isn't in `corpus/` is a finding. Don't look for rulings that the case doesn't cite.
 

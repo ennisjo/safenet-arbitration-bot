@@ -10,7 +10,7 @@ A check is a `check` value in `internal/checks` that decides a class of calls th
 - the `insecure` checks run on every call, and the first check that matches a call decides the request;
 - otherwise, the request is `secure` if a `secure` check matches every call, and unclassified if any call matches none.
 
-`arbot classify -list` lists them in that order. Requests that every check abstains on go to the LLM stage, so a check that abstains when in doubt costs little, and one that decides wrongly misleads the Council.
+`arbot classify -list` lists them in that order. A request is arbitrated only under its disputed rules, the rules that the sentinels' `insecure` votes cite (see Disputed rules in `AGENTS.md`), but `arbot classify` runs every check, so the `arbitrate` skill uses an `insecure` classification only if its rule is disputed. Requests that every check abstains on go to the LLM stage, so a check that abstains when in doubt costs little, and one that decides wrongly misleads the Council.
 
 ## Inputs
 

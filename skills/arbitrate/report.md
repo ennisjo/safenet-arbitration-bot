@@ -14,7 +14,7 @@ If no case was accepted, replace the note above with this one:
 
 ## Verdict
 
-**`{{secure or insecure}}`** under {{rule, such as `R-4.1`, or section, such as § 3.7}}
+**`{{secure or insecure}}`** under {{the disputed rule that the transaction fails, such as `R-4.1`, or for secure, the disputed rules that it passes}}
 
 - **Decided by**: {{"`arbot classify`: <description>", "the `prosecutor`'s case, accepted by the `judge` in round <n>", or "no accepted case"}}
 - **Reason**: {{one to three sentences: the rule, the fact that decides it, and why no exception applies}}
@@ -33,6 +33,7 @@ If no case was accepted, replace the note above with this one:
 | Evidence as of | {{network}} block [{{safeBlock}}]({{safe explorer}}/block/{{safeBlock}}) and Ethereum Mainnet block [{{ethereumBlock}}](https://etherscan.io/block/{{ethereumBlock}}) |
 | Charter version | `{{Charter CID}}`, referenced by `{{charter}}` at Ethereum Mainnet block {{ethereumBlock}} (§ 2.12) |
 | Sentinel votes | {{approvals}} approve, {{denials}} deny, {{pending}} unrevealed |
+| Disputed rules | {{the rules that the insecure votes cite, such as `R-4.1`, `R-4.2`}}, the only rules this ruling considers |
 | Sentinel fee | {{fee}}, bond {{bond}}, slash amount {{slash amount}} per sentinel |
 
 ## Transaction
@@ -56,8 +57,10 @@ The Safe transaction's fields, from the request file. For a MultiSend, or a tran
 <!--
 Quote, verbatim from the fetched Charter, each provision that the verdict rests on, under its heading, and say in one line how it applies:
 
-- insecure: the rule that the transaction breaks, and each of its exceptions, with why it doesn't apply;
-- secure: for each Article IV rule, the text, exception, or definition that the transaction passes it by, and § 3.7;
+Consider only the disputed rules, which the insecure votes cite, and the definitions and standards that they use. Don't quote rules that no sentinel cited.
+
+- insecure: the disputed rule that the transaction breaks, and each of its exceptions, with why it doesn't apply;
+- secure: for each disputed rule, the text, exception, or definition that the transaction passes it by;
 - the ruling standard that decides it, such as § 3.7 for a deterministic rule, or § 3.8 for a principle-based one.
 -->
 
@@ -111,7 +114,7 @@ Each past ruling that the case applied or distinguished, by request ID, with its
 
 ## Sentinel Votes
 
-These are leads to the rules at issue, not evidence (§ 2.14).
+Their reasons decide the disputed rules, but they aren't evidence (§ 2.14).
 
 | Sentinel | Vote | Reason |
 | --- | --- | --- |
