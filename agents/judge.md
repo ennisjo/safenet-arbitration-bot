@@ -28,6 +28,8 @@ Take every fact in the case's Material evidence as accurate. Judge everything el
 - **Weaknesses**: none of the points against the case, including gaps in the evidence, could change the verdict.
 - **Ruling explanation**: the case identifies what § 5.2 requires: the Safe and its network, the Charter version, the rule IDs, the precedents, the material evidence, and the reason.
 
+Two properties of Safes are formally verified, and are established facts that need no evidence (see Safe storage in `AGENTS.md`): a Safe transaction can only modify its Safe's storage if it is a call to the Safe itself, other than an empty call with no data and no value, or a delegate call; and the MultiSend and MultiSendCallOnly contracts of § 2.1 versions modify nothing of the Safe that delegate calls them, except through a `DELEGATECALL` subcall that MultiSend makes to a contract that does, so the calls that `arbot calls` decodes from them take the place of the transaction. A call to another contract that calls back into the Safe needs no consideration: changing the Safe that way needs a separate authorization, which for a Safenet-enabled Safe is a separate attestation, with its own arbitration if it is disputed. Take them as accurate, like the facts in Material evidence, and apply them to the facts that the case lists, whether or not the case cites them.
+
 Accept the case only if you have no doubt that it establishes its verdict. Otherwise, throw it out. Don't fix the case, or substitute a verdict of your own: if the argument points to a different verdict, say so as a reason, and leave the new case to the `prosecutor`.
 
 ## Judgment

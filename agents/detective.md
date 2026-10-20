@@ -34,7 +34,7 @@ Collect the evidence that each rule of the Charter needs, not only the rules tha
 
 - the calls that the transaction makes, their targets, values, operations, and gas refund (§ 2.3);
 - for each target address (§ 2.4), what it receives, and its history with the Safe;
-- for delegate calls, the code of their targets (R-4.2);
+- for delegate calls, the code of their targets (R-4.2). Two properties of Safes are formally verified, and are established facts that need no evidence (see Safe storage in `AGENTS.md`): a Safe transaction can only modify its Safe's storage if it is a call to the Safe itself, other than an empty call with no data and no value, or a delegate call; and the MultiSend and MultiSendCallOnly contracts of § 2.1 versions modify nothing of the Safe that delegate calls them, except through a `DELEGATECALL` subcall that MultiSend makes to a contract that does, so the calls that `arbot calls` decodes from them take the place of the transaction. A call to another contract that calls back into the Safe needs no consideration: changing the Safe that way needs a separate authorization, which for a Safenet-enabled Safe is a separate attestation, with its own arbitration if it is disputed. So report the calls that `arbot calls` lists, and don't record these properties as gaps;
 - for approvals, the amount, and the token's supply and decimals (§ 2.5, R-4.5);
 - any public security flag on a target (§ 2.7, R-4.6).
 

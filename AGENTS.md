@@ -25,6 +25,17 @@ This bot helps the Safenet Security Council arbitrate disputed Safenet transacti
 - **Two chains.** `Consensus` and `SentinelOracle` run on Gnosis Chain (chain ID 100). The disputed Safe can be on any network the Charter covers. Read the Safe's state (codehash, owners, modules, transfer history) on the Safe's own chain, at the last block before the proposal time. Evidence must not include effects of the transaction itself or anything that happened later (§ 2.8, § 3.6).
 - **Deployments.** `arbot` defaults to the oracle-backed `SentinelOracle` and `Consensus` deployment on Gnosis Chain, whose addresses are in `internal/safenet/addresses.go`. This is the latest testnet deployment, whose contracts match the current Safenet sources: its `NewRequest` event has a DAO fee share, and revealing the last committed vote finalizes a request. Its `ARBITRATION_TIMEOUT` is 50,400 blocks and its `COMMIT_WINDOW` is 2 blocks. `arbot` checks that the oracle's `PROPOSER` is the configured `Consensus`. The `internal/safenet` unit tests use a fixture recorded from the previous default deployment (`SentinelOracle` `0x544F12bAd6FF72564abBc7eA6494A2a4BdD0DDD0`, `Consensus` `0x98810887769db19A0Df9bf2f44E4998856fcb390`), which has requests in every state. The Beta network's `Consensus` (`0x223624cBF099e5a8f8cD5aF22aFa424a1d1acEE9`) predates the oracle flow and is not compatible with it.
 
+### Safe storage
+
+Two properties of the Safe versions of § 2.1 are formally verified. Agents and checks rely on them as established facts, which need no evidence:
+
+- **Only transactions to the Safe and delegate call transactions can modify its storage.** A Safe transaction can only modify its Safe's storage if it is a call to the Safe itself, other than an empty call with no data and no value, as a cancellation transaction makes, or if it is a delegate call. This is a necessary condition, not a sufficient one: a transaction of either kind may modify the storage, but doesn't have to.
+- **The MultiSend contracts modify nothing themselves.** The MultiSend and MultiSendCallOnly contracts of § 2.1 versions, which `arbot calls` and the checks decode, don't modify the storage of the Safe that delegate calls them, except through a `DELEGATECALL` subcall that MultiSend makes to a contract that does. MultiSendCallOnly makes no delegate calls, so it modifies nothing.
+
+For a delegate call transaction to a MultiSend, the calls that `arbot calls` decodes take the place of the transaction: it can only modify the Safe's storage if one of them is a call to the Safe itself, other than an empty one, or a delegate call to a contract other than a decoded MultiSend.
+
+A call to another contract that calls back into the Safe needs no consideration. Changing the Safe that way needs a separate authorization: for a Safenet-enabled Safe, a separate attestation, and a separate arbitration if it is disputed.
+
 ## Architecture
 
 ### Invariants
