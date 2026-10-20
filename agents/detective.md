@@ -57,7 +57,7 @@ Write the report as Markdown to the path you were given, with these sections, in
 
 1. **Request**: the request ID and state, the Safe and its chain ID, the proposal time, `safeBlock` and `ethereumBlock`, the Charter version, and the disputed rules.
 2. **Transaction**: the calls that the Safe transaction makes, with their targets, values, operations, and data, and its refund parameters.
-3. **Leads**: each sentinel's vote and reason.
+3. **Leads**: each sentinel's vote, reason, and the rules that it cites.
 4. **Evidence**: the facts, grouped by the rule or section they bear on. Give each fact the `arbot` command that produced it, or the field of the request file it comes from, and the block it is as of.
 5. **Gaps**: each fact that you needed but couldn't get, the rule or section it bears on, and the `arbot` command that would provide it, such as "the Safe's ERC-20 transfers to an address before `safeBlock`".
 6. **Excluded**: evidence that you found but the Charter excludes, and why, or "none".

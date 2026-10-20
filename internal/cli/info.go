@@ -94,8 +94,9 @@ func writeRequest(w io.Writer, r *safenet.Request) {
 		fmt.Fprintf(w, "  none\n")
 	}
 	for _, v := range r.Votes {
-		fmt.Fprintf(w, "  %s\t%s\tbond %s\treason %q\n", v.Sentinel, v.Vote, formatAmount(v.Bond, r.FeeToken), v.Reason)
+		fmt.Fprintf(w, "  %s\t%s\tbond %s\treason %q\trules %s\n", v.Sentinel, v.Vote, formatAmount(v.Bond, r.FeeToken), v.Reason, formatRules(v.Rules))
 	}
+	fmt.Fprintf(w, "\nDisputed rules\n  %s\n", formatRules(r.DisputedRules))
 
 	a := r.Arbitration
 	if a == nil {
@@ -115,6 +116,16 @@ func writeRequest(w io.Writer, r *safenet.Request) {
 	if a.Record != nil {
 		fmt.Fprintf(w, "  Record\tblock %d, transaction %s\n", a.Record.Block, a.Record.TxHash)
 	}
+}
+
+// formatRules formats a list of rule identifiers, such as "R-4.1, R-4.2", or
+// "-" if it is empty. CitedRules only returns rule identifiers, so they need no
+// quoting.
+func formatRules(rules []string) string {
+	if len(rules) == 0 {
+		return "-"
+	}
+	return strings.Join(rules, ", ")
 }
 
 // formatAmount formats an amount of token in the token's units, followed by its

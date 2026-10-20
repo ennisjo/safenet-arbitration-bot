@@ -48,14 +48,21 @@
         "sentinel": "0xe2eed4938d2fd005cb8744011031041eb5349536",
         "bond": 800000000000000000000,
         "vote": "APPROVED",
-        "reason": ""
+        "reason": "",
+        "rules": []
       },
       {
         "sentinel": "0x6d081448c04d9ef7cf8ecf54207b1931ecc25312",
         "bond": 800000000000000000000,
         "vote": "DENIED",
-        "reason": "R-4.2"
+        "reason": "R-4.2",
+        "rules": [
+          "R-4.2"
+        ]
       }
+    ],
+    "disputedRules": [
+      "R-4.2"
     ],
     "arbitration": {
       "frozenBlock": 48385788,
@@ -112,14 +119,21 @@
         "sentinel": "0xc84a0928632382e75c543acced101b9525027362",
         "bond": 800000000000000000000,
         "vote": "APPROVED",
-        "reason": ""
+        "reason": "",
+        "rules": []
       },
       {
         "sentinel": "0x6d081448c04d9ef7cf8ecf54207b1931ecc25312",
         "bond": 800000000000000000000,
         "vote": "DENIED",
-        "reason": "R-4.1"
+        "reason": "R-4.1",
+        "rules": [
+          "R-4.1"
+        ]
       }
+    ],
+    "disputedRules": [
+      "R-4.1"
     ],
     "arbitration": {
       "frozenBlock": 48415721,
@@ -182,20 +196,30 @@
         "sentinel": "0xe2eed4938d2fd005cb8744011031041eb5349536",
         "bond": 800000000000000000000,
         "vote": "DENIED",
-        "reason": "R-4.4"
+        "reason": "R-4.4",
+        "rules": [
+          "R-4.4"
+        ]
       },
       {
         "sentinel": "0xc84a0928632382e75c543acced101b9525027362",
         "bond": 800000000000000000000,
         "vote": "APPROVED",
-        "reason": ""
+        "reason": "",
+        "rules": []
       },
       {
         "sentinel": "0x6d081448c04d9ef7cf8ecf54207b1931ecc25312",
         "bond": 800000000000000000000,
         "vote": "DENIED",
-        "reason": "R-4.4"
+        "reason": "R-4.4",
+        "rules": [
+          "R-4.4"
+        ]
       }
+    ],
+    "disputedRules": [
+      "R-4.4"
     ],
     "arbitration": {
       "frozenBlock": 48416066,
@@ -258,14 +282,21 @@
         "sentinel": "0x6d081448c04d9ef7cf8ecf54207b1931ecc25312",
         "bond": 800000000000000000000,
         "vote": "DENIED",
-        "reason": "R-4.2"
+        "reason": "R-4.2",
+        "rules": [
+          "R-4.2"
+        ]
       },
       {
         "sentinel": "0xc84a0928632382e75c543acced101b9525027362",
         "bond": 800000000000000000000,
         "vote": "APPROVED",
-        "reason": ""
+        "reason": "",
+        "rules": []
       }
+    ],
+    "disputedRules": [
+      "R-4.2"
     ],
     "arbitration": {
       "frozenBlock": 48403580,
@@ -327,20 +358,30 @@
         "sentinel": "0xe2eed4938d2fd005cb8744011031041eb5349536",
         "bond": 800000000000000000000,
         "vote": "DENIED",
-        "reason": "R-4.2"
+        "reason": "R-4.2",
+        "rules": [
+          "R-4.2"
+        ]
       },
       {
         "sentinel": "0x6d081448c04d9ef7cf8ecf54207b1931ecc25312",
         "bond": 800000000000000000000,
         "vote": "DENIED",
-        "reason": "R-4.2"
+        "reason": "R-4.2",
+        "rules": [
+          "R-4.2"
+        ]
       },
       {
         "sentinel": "0xc84a0928632382e75c543acced101b9525027362",
         "bond": 800000000000000000000,
         "vote": "APPROVED",
-        "reason": ""
+        "reason": "",
+        "rules": []
       }
+    ],
+    "disputedRules": [
+      "R-4.2"
     ],
     "arbitration": {
       "frozenBlock": 48358119,
@@ -401,9 +442,11 @@
         "sentinel": "0xc84a0928632382e75c543acced101b9525027362",
         "bond": 800000000000000000000,
         "vote": "APPROVED",
-        "reason": ""
+        "reason": "",
+        "rules": []
       }
     ],
+    "disputedRules": [],
     "arbitration": null
   },
   {
@@ -455,9 +498,11 @@
         "sentinel": "0xc84a0928632382e75c543acced101b9525027362",
         "bond": 800000000000000000000,
         "vote": "PENDING",
-        "reason": ""
+        "reason": "",
+        "rules": []
       }
     ],
+    "disputedRules": [],
     "arbitration": null
   }
 ]

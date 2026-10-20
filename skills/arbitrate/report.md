@@ -33,7 +33,7 @@ If no case was accepted, replace the note above with this one:
 | Evidence as of | {{network}} block [{{safeBlock}}]({{safe explorer}}/block/{{safeBlock}}) and Ethereum Mainnet block [{{ethereumBlock}}](https://etherscan.io/block/{{ethereumBlock}}) |
 | Charter version | `{{Charter CID}}`, referenced by `{{charter}}` at Ethereum Mainnet block {{ethereumBlock}} (§ 2.12) |
 | Sentinel votes | {{approvals}} approve, {{denials}} deny, {{pending}} unrevealed |
-| Disputed rules | {{the rules that the insecure votes cite, such as `R-4.1`, `R-4.2`}}, the only rules this ruling considers |
+| Disputed rules | {{the rules of `disputed-rules.md`, such as `R-4.1`, `R-4.2`}}, the only rules this ruling considers |
 | Sentinel fee | {{fee}}, bond {{bond}}, slash amount {{slash amount}} per sentinel |
 
 ## Transaction
@@ -116,9 +116,9 @@ Each past ruling that the case applied or distinguished, by request ID, with its
 
 Their reasons decide the disputed rules, but they aren't evidence (§ 2.14).
 
-| Sentinel | Vote | Reason |
-| --- | --- | --- |
-| [`{{sentinel}}`](https://gnosisscan.io/address/{{sentinel}}) | {{vote}} | `{{reason}}` |
+| Sentinel | Vote | Reason | Cited rules |
+| --- | --- | --- | --- |
+| [`{{sentinel}}`](https://gnosisscan.io/address/{{sentinel}}) | {{vote}} | `{{reason}}` | {{the vote's `rules`, such as `R-4.1`, `R-4.2`, or "none"}} |
 
 ## Weaknesses and Gaps
 

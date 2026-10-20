@@ -33,7 +33,7 @@ A fact is a finding if:
 Check that the `prosecutor`'s case uses only evidence that a `detective` collected, and past rulings that exist:
 
 - **Facts**: each fact in the case's Material evidence and Argument is in the report, with the same values and meaning. A fact that isn't in the report, or that the case overstates, such as "never" for "not in the blocks scanned", is a finding.
-- **Disputed rules**: the disputed rules that the case names are those that you were given, and the votes that it says cite them are the `DENIED` votes of the request file whose reasons cite them.
+- **Disputed rules**: the disputed rules that the case names are those that you were given, and the votes that it says cite them are the `DENIED` votes of the request file whose `rules` list them.
 - **Verified properties**: the case may rely on the formally verified properties under Safe storage in `AGENTS.md`, that only transactions to the Safe itself and delegate call transactions can modify its storage, that the MultiSend contracts of § 2.1 versions modify nothing themselves, so that the calls they make take the place of the transaction, and that a call to a contract that calls back into the Safe needs no consideration. They need no evidence, so relying on them isn't a finding, but stating more than they say is.
 - **Precedents**: past rulings are in `corpus/`, one file per request, named `corpus/<request-id>.md`. Read the file of each request ID that the case cites, and check that the case describes its outcome, rules, facts, and holding as the file records them. A cited ruling that isn't in `corpus/` is a finding. Don't look for rulings that the case doesn't cite.
 

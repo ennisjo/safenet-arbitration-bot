@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,9 +40,9 @@ func TestPendingAndInfo(t *testing.T) {
 	insecure.Resolve(false, "ipfs://bafkreidivzimqfqtoqxkrpge6bjyhlvxqs3rhe73owtmdulaxr5do5in7u")
 	outOfScope.MarkOutOfScope("Not a Safe transaction.")
 
-	// A dispute ruled secure.
+	// A dispute ruled secure, where the denials cite several rules.
 	secure := n.Propose(nil)
-	n.Vote(secure.Deny(s1, "R-4.4"), secure.Approve(s2), secure.Deny(s3, "R-4.4"))
+	n.Vote(secure.Deny(s1, "R-4.4, R-4.5"), secure.Approve(s2), secure.Deny(s3, "R-4.5,R-4.6, not a rule"))
 	secure.Resolve(true, "A reasonable allowance.")
 
 	// A unanimous approval, which is never arbitrated.
@@ -81,16 +82,17 @@ func TestPendingAndInfo(t *testing.T) {
 		request *e2e.Request
 		state   string
 		// outcome is empty for a request without an arbitration.
-		outcome string
+		outcome       string
+		disputedRules []string
 	}{
-		{"arbitration timed out", timedOut, "TIMED_OUT", "timed-out"},
-		{"insecure", insecure, "RESOLVED_DENIED", "insecure"},
-		{"out of scope", outOfScope, "TIMED_OUT", "out-of-scope"},
-		{"secure", secure, "RESOLVED_APPROVED", "secure"},
-		{"unanimous", unanimous, "RESOLVED_APPROVED", ""},
-		{"unrevealed", unrevealed, "TIMED_OUT", ""},
-		{"frozen", frozen, "FROZEN", "pending"},
-		{"pending", pending, "PENDING", ""},
+		{"arbitration timed out", timedOut, "TIMED_OUT", "timed-out", []string{"R-4.1"}},
+		{"insecure", insecure, "RESOLVED_DENIED", "insecure", []string{"R-4.1"}},
+		{"out of scope", outOfScope, "TIMED_OUT", "out-of-scope", []string{"R-4.2"}},
+		{"secure", secure, "RESOLVED_APPROVED", "secure", []string{"R-4.4", "R-4.5", "R-4.6"}},
+		{"unanimous", unanimous, "RESOLVED_APPROVED", "", []string{}},
+		{"unrevealed", unrevealed, "TIMED_OUT", "", []string{}},
+		{"frozen", frozen, "FROZEN", "pending", []string{"R-4.1"}},
+		{"pending", pending, "PENDING", "", []string{}},
 	}
 	for _, test := range tests {
 		t.Run("info "+test.name, func(t *testing.T) {
@@ -132,19 +134,31 @@ func TestPendingAndInfo(t *testing.T) {
 				t.Errorf("proposal: got Safe chain block %d, want Ethereum block %d", p.SafeBlock, p.EthereumBlock)
 			}
 
+			// The rules that each reason of a denial cites.
+			citedRules := map[string][]string{
+				"R-4.1":                   {"R-4.1"},
+				"R-4.2":                   {"R-4.2"},
+				"R-4.4, R-4.5":            {"R-4.4", "R-4.5"},
+				"R-4.5,R-4.6, not a rule": {"R-4.5", "R-4.6"},
+			}
 			var votes []vote
 			for _, b := range r.Ballots {
-				v := vote{Sentinel: b.Sentinel, Vote: "PENDING"}
+				v := vote{Sentinel: b.Sentinel, Vote: "PENDING", Rules: []string{}}
 				if r.Revealed[b.Sentinel] {
 					v.Vote, v.Reason = "DENIED", b.Reason
 					if b.Approve {
 						v.Vote = "APPROVED"
+					} else {
+						v.Rules = citedRules[b.Reason]
 					}
 				}
 				votes = append(votes, v)
 			}
 			if !reflect.DeepEqual(got.Votes, votes) {
 				t.Errorf("votes: got %+v, want %+v", got.Votes, votes)
+			}
+			if !reflect.DeepEqual(got.DisputedRules, test.disputedRules) {
+				t.Errorf("disputed rules: got %q, want %q", got.DisputedRules, test.disputedRules)
 			}
 
 			if test.outcome == "" {
@@ -168,8 +182,12 @@ func TestPendingAndInfo(t *testing.T) {
 				}
 			}
 
-			// The text shows the state, the fee token's amounts in its units, and
-			// checksummed addresses.
+			// The text shows the state, the fee token's amounts in its units, checksummed
+			// addresses, and the disputed rules.
+			disputedRules := "-"
+			if len(test.disputedRules) > 0 {
+				disputedRules = regexp.QuoteMeta(strings.Join(test.disputedRules, ", "))
+			}
 			text := arbot.Run(t, "info", r.ID.String())
 			for _, line := range []string{
 				`  State +` + test.state,
@@ -177,6 +195,7 @@ func TestPendingAndInfo(t *testing.T) {
 				`  Bond +10 WETH`,
 				`  Slash amount +1 WETH`,
 				`  Sponsor +` + n.Sponsor.String(),
+				`Disputed rules\n  ` + disputedRules,
 			} {
 				if !regexp.MustCompile(`(?m)^` + line + `$`).Match(text) {
 					t.Errorf("info: output has no line matching %q:\n%s", line, text)
@@ -267,14 +286,16 @@ type requestInfo struct {
 		SafeTxHash    ethrpc.Hash     `json:"safeTxHash"`
 		Transaction   json.RawMessage `json:"transaction"`
 	} `json:"proposal"`
-	Votes       []vote       `json:"votes"`
-	Arbitration *arbitration `json:"arbitration"`
+	Votes         []vote       `json:"votes"`
+	DisputedRules []string     `json:"disputedRules"`
+	Arbitration   *arbitration `json:"arbitration"`
 }
 
 type vote struct {
 	Sentinel ethrpc.Address `json:"sentinel"`
 	Vote     string         `json:"vote"`
 	Reason   string         `json:"reason"`
+	Rules    []string       `json:"rules"`
 }
 
 type arbitration struct {

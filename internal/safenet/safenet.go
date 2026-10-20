@@ -267,6 +267,7 @@ func (s *session) request(ctx context.Context, id ethrpc.Hash) (*Request, error)
 	if err := progress.check(request.Votes); err != nil {
 		return nil, fmt.Errorf("request %s: %w", id, err)
 	}
+	request.DisputedRules = DisputedRules(request.Votes)
 
 	if progress.arbitrationDeadline != 0 {
 		timeout, err := s.callUint64(ctx, block, arbitrationTimeoutSelector)
@@ -518,7 +519,7 @@ func (s *session) votes(ctx context.Context, id ethrpc.Hash, from, to ethrpc.Blo
 				return nil, fmt.Errorf("request %s: sentinel %s committed twice", id, sentinel)
 			}
 			index[sentinel] = len(votes)
-			votes = append(votes, Commitment{Sentinel: sentinel, Bond: d.Uint(0), Vote: VotePending})
+			votes = append(votes, Commitment{Sentinel: sentinel, Bond: d.Uint(0), Vote: VotePending, Rules: []string{}})
 		} else {
 			if !committed || votes[i].Vote != VotePending {
 				return nil, fmt.Errorf("request %s: sentinel %s revealed a vote it didn't commit", id, sentinel)
@@ -528,6 +529,9 @@ func (s *session) votes(ctx context.Context, id ethrpc.Hash, from, to ethrpc.Blo
 				votes[i].Vote = VoteApproved
 			}
 			votes[i].Reason = d.String(2)
+			if votes[i].Vote == VoteDenied {
+				votes[i].Rules = CitedRules(votes[i].Reason)
+			}
 		}
 		if err := d.Err(); err != nil {
 			return nil, fmt.Errorf("decoding vote by %s on request %s: %w", sentinel, id, err)

@@ -37,6 +37,10 @@ type Request struct {
 	Fee      *big.Int     `json:"fee"`
 	Proposal Proposal     `json:"proposal"`
 	Votes    []Commitment `json:"votes"`
+	// DisputedRules are the rules that the DENIED votes cite, all of them together,
+	// in the order of their first citation. The arbitration of a dispute considers
+	// only these rules.
+	DisputedRules []string `json:"disputedRules"`
 	// Arbitration is nil unless a split vote froze the request.
 	Arbitration *Arbitration `json:"arbitration"`
 }
@@ -111,8 +115,12 @@ type Commitment struct {
 	// Vote is PENDING until the sentinel reveals it.
 	Vote Vote `json:"vote"`
 	// Reason is the reason the sentinel gave when revealing its vote. By
-	// convention, it is empty for approvals and cites a Charter rule for denials.
+	// convention, it is empty for approvals, and a comma-separated list of the
+	// Charter rules that the transaction fails for denials, such as "R-4.1, R-4.2".
 	Reason string `json:"reason"`
+	// Rules are the rule identifiers that the reason of a DENIED vote cites, as
+	// CitedRules parses them, and are empty for other votes.
+	Rules []string `json:"rules"`
 }
 
 // Arbitration is the arbitration of a frozen request.
