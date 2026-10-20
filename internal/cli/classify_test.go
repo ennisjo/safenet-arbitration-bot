@@ -46,11 +46,11 @@ func TestClassify(t *testing.T) {
 		stdout string
 		stderr string
 	}{
-		{[]string{"-request-file", request}, 0, "out-of-scope  Safe on a network that the Charter doesn't cover\n", ""},
+		{[]string{"-request-file", request}, 0, "insecure  R-4.0  Safe on a network that the Charter doesn't cover\n", ""},
 		{
 			[]string{"-json", "-request-file", request},
 			0,
-			"{\n  \"verdict\": \"out-of-scope\",\n  \"description\": \"Safe on a network that the Charter doesn't cover\"\n}\n",
+			"{\n  \"verdict\": \"insecure\",\n  \"rule\": \"R-4.0\",\n  \"description\": \"Safe on a network that the Charter doesn't cover\"\n}\n",
 			"",
 		},
 		{[]string{"-request-file", write("unknown.json", `{"stat": "FROZEN"}`)}, 1, "", `unknown field "stat"`},

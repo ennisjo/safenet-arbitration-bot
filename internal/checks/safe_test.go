@@ -1,6 +1,7 @@
 package checks
 
 import (
+	"cmp"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -17,11 +18,15 @@ import (
 	"github.com/safe-research/safenet-arbitration-bot/internal/safenet"
 )
 
-// The code of the SafeProxy contracts of Safe 1.3.0, 1.4.1, and 1.5.0.
+// The code of the SafeProxy contracts of Safe 1.0.0, 1.1.1 on Ethereum Mainnet
+// and on Gnosis Chain, 1.3.0, 1.4.1, and 1.5.0.
 var (
-	safeProxy130 = must(hex.DecodeString("608060405273ffffffffffffffffffffffffffffffffffffffff600054167fa619486e0000000000000000000000000000000000000000000000000000000060003514156050578060005260206000f35b3660008037600080366000845af43d6000803e60008114156070573d6000fd5b3d6000f3fea2646970667358221220d1429297349653a4918076d650332de1a1068c5f3e07c5c82360c277770b955264736f6c63430007060033"))
-	safeProxy141 = must(hex.DecodeString("608060405273ffffffffffffffffffffffffffffffffffffffff600054167fa619486e0000000000000000000000000000000000000000000000000000000060003514156050578060005260206000f35b3660008037600080366000845af43d6000803e60008114156070573d6000fd5b3d6000f3fea264697066735822122003d1488ee65e08fa41e58e888a9865554c535f2c77126a82cb4c0f917f31441364736f6c63430007060033"))
-	safeProxy150 = must(hex.DecodeString("608060405260005463a619486e60003560e01c14156024578060601b606c5260206060f35b3660008037600080366000845af43d6000803e806040573d6000fd5b3d6000f3fea2646970667358221220e61834ebd2d8cd909d362bf67c47ef58fd665df38e6dd036ce65611101d072e964736f6c63430007060033"))
+	safeProxy100        = must(hex.DecodeString("608060405273ffffffffffffffffffffffffffffffffffffffff600054163660008037600080366000845af43d6000803e6000811415603d573d6000fd5b3d6000f3fea165627a7a723058201e7d648b83cfac072cbccefc2ffc62a6999d4a050ee87a721942de1da9670db80029"))
+	safeProxy111Mainnet = must(hex.DecodeString("608060405273ffffffffffffffffffffffffffffffffffffffff600054167fa619486e0000000000000000000000000000000000000000000000000000000060003514156050578060005260206000f35b3660008037600080366000845af43d6000803e60008114156070573d6000fd5b3d6000f3fea265627a7a72315820d8a00dc4fe6bf675a9d7416fc2d00bb3433362aa8186b750f76c4027269667ff64736f6c634300050e0032"))
+	safeProxy111Gnosis  = must(hex.DecodeString("608060405273ffffffffffffffffffffffffffffffffffffffff600054167fa619486e0000000000000000000000000000000000000000000000000000000060003514156050578060005260206000f35b3660008037600080366000845af43d6000803e60008114156070573d6000fd5b3d6000f3fea265627a7a723158200a23d2285c529de46060100feb312da05c409802321897869814263b54bb746264736f6c634300050e0032"))
+	safeProxy130        = must(hex.DecodeString("608060405273ffffffffffffffffffffffffffffffffffffffff600054167fa619486e0000000000000000000000000000000000000000000000000000000060003514156050578060005260206000f35b3660008037600080366000845af43d6000803e60008114156070573d6000fd5b3d6000f3fea2646970667358221220d1429297349653a4918076d650332de1a1068c5f3e07c5c82360c277770b955264736f6c63430007060033"))
+	safeProxy141        = must(hex.DecodeString("608060405273ffffffffffffffffffffffffffffffffffffffff600054167fa619486e0000000000000000000000000000000000000000000000000000000060003514156050578060005260206000f35b3660008037600080366000845af43d6000803e60008114156070573d6000fd5b3d6000f3fea264697066735822122003d1488ee65e08fa41e58e888a9865554c535f2c77126a82cb4c0f917f31441364736f6c63430007060033"))
+	safeProxy150        = must(hex.DecodeString("608060405260005463a619486e60003560e01c14156024578060601b606c5260206060f35b3660008037600080366000845af43d6000803e806040573d6000fd5b3d6000f3fea2646970667358221220e61834ebd2d8cd909d362bf67c47ef58fd665df38e6dd036ce65611101d072e964736f6c63430007060033"))
 )
 
 func must[T any](v T, err error) T {
@@ -125,22 +130,34 @@ func TestUnsupportedSafe(t *testing.T) {
 	tests := []struct {
 		name    string
 		account account
+		// chainID is the Safe's network, Gnosis Chain if 0.
+		chainID int64
 		want    bool
 		// reads is the number of requests that the check makes.
 		reads int64
 	}{
-		{"1.3.0", proxy(safeProxy130, safe130), false, 2},
-		{"1.3.0 L2", proxy(safeProxy130, safeL2130), false, 2},
-		{"1.4.1", proxy(safeProxy141, safe141), false, 2},
-		{"1.5.0 L2", proxy(safeProxy150, safeL2150), false, 2},
-		{"migrated proxy", proxy(safeProxy130, safeL2150), false, 2},
-		{"dirty singleton slot", dirty, false, 2},
-		{"empty account", account{}, true, 1},
-		{"other code", proxy([]byte{0x60, 0x80}, safe141), true, 1},
-		{"truncated proxy", proxy(safeProxy141[:len(safeProxy141)-1], safe141), true, 1},
-		{"unsupported singleton", proxy(safeProxy141, ethrpc.Address{19: 1}), true, 2},
-		{"no singleton", proxy(safeProxy141, ethrpc.Address{}), true, 2},
-		{"singleton without proxy", proxy(nil, safe141), true, 1},
+		{"1.0.0 proxy on Ethereum Mainnet", proxy(safeProxy100, safe141), ethrpc.Mainnet, false, 2},
+		{"1.0.0 proxy on Gnosis Chain", proxy(safeProxy100, safe130), ethrpc.Gnosis, false, 2},
+		{"1.0.0 proxy on Arbitrum One", proxy(safeProxy100, safe141), ethrpc.ArbitrumOne, true, 1},
+		{"1.1.1 proxy on Ethereum Mainnet", proxy(safeProxy111Mainnet, safe130), ethrpc.Mainnet, false, 2},
+		{"1.1.1 proxy on Gnosis Chain", proxy(safeProxy111Gnosis, safeL2130), ethrpc.Gnosis, false, 2},
+		{"Gnosis Chain 1.1.1 proxy on Ethereum Mainnet", proxy(safeProxy111Gnosis, safe130), ethrpc.Mainnet, true, 1},
+		{"Ethereum Mainnet 1.1.1 proxy on Gnosis Chain", proxy(safeProxy111Mainnet, safe130), ethrpc.Gnosis, true, 1},
+		{"1.1.1 proxy on Arbitrum One", proxy(safeProxy111Mainnet, safe130), ethrpc.ArbitrumOne, true, 1},
+		{"1.0.0 proxy with a 1.1.1 singleton", proxy(safeProxy100, ethrpc.MustParseAddress("0x34CfAC646f301356fAa8B21e94227e3583Fe3F5F")), ethrpc.Mainnet, true, 2},
+		{"1.3.0 proxy on Arbitrum One", proxy(safeProxy130, safe130), ethrpc.ArbitrumOne, false, 2},
+		{"1.3.0", proxy(safeProxy130, safe130), 0, false, 2},
+		{"1.3.0 L2", proxy(safeProxy130, safeL2130), 0, false, 2},
+		{"1.4.1", proxy(safeProxy141, safe141), 0, false, 2},
+		{"1.5.0 L2", proxy(safeProxy150, safeL2150), 0, false, 2},
+		{"migrated proxy", proxy(safeProxy130, safeL2150), 0, false, 2},
+		{"dirty singleton slot", dirty, 0, false, 2},
+		{"empty account", account{}, 0, true, 1},
+		{"other code", proxy([]byte{0x60, 0x80}, safe141), 0, true, 1},
+		{"truncated proxy", proxy(safeProxy141[:len(safeProxy141)-1], safe141), 0, true, 1},
+		{"unsupported singleton", proxy(safeProxy141, ethrpc.Address{19: 1}), 0, true, 2},
+		{"no singleton", proxy(safeProxy141, ethrpc.Address{}), 0, true, 2},
+		{"singleton without proxy", proxy(nil, safe141), 0, true, 1},
 	}
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -148,7 +165,8 @@ func TestUnsupportedSafe(t *testing.T) {
 			safe := ethrpc.Address{0: 0x5a, 19: byte(i)}
 			node := &fakeNode{accounts: map[ethrpc.Address]account{safe: test.account}}
 			at := &env{dial: node.dialer(t, testSafeBlock), block: testSafeBlock}
-			got, err := unsupportedSafe.fn(t.Context(), at, &safeID{address: safe, chainID: big.NewInt(ethrpc.Gnosis)}, call{})
+			chainID := cmp.Or(test.chainID, ethrpc.Gnosis)
+			got, err := unsupportedSafe.fn(t.Context(), at, &safeID{address: safe, chainID: big.NewInt(chainID)}, call{})
 			if got != test.want || err != nil {
 				t.Errorf("unsupportedSafe = %t, %v; want %t", got, err, test.want)
 			}

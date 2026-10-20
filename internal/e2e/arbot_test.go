@@ -215,7 +215,7 @@ func TestPendingAndInfo(t *testing.T) {
 			t.Errorf("classify -request-file: got output %q, want %q", got, "unclassified\n")
 		}
 
-		// The same transaction by an account that isn't a Safe is out of scope.
+		// The same transaction by an account that isn't a Safe is insecure.
 		var request map[string]any
 		if err := json.Unmarshal(arbot.Run(t, "info", "-json", frozen.ID.String()), &request); err != nil {
 			t.Fatal(err)
@@ -228,7 +228,7 @@ func TestPendingAndInfo(t *testing.T) {
 		if err := os.WriteFile(path, data, 0o644); err != nil {
 			t.Fatal(err)
 		}
-		const want = "out-of-scope  account that isn't a Safe of a version that the Charter covers\n"
+		const want = "insecure  R-4.0  account that isn't a Safe of a version that the Charter covers\n"
 		if got := string(arbot.Run(t, "classify", "-request-file", path)); got != want {
 			t.Errorf("classify -request-file for another account: got output %q, want %q", got, want)
 		}
