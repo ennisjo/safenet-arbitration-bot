@@ -9,13 +9,20 @@ import (
 	"github.com/safe-research/safenet-arbitration-bot/internal/keccak256"
 )
 
+// safeProxy is the SafeProxy contract of a proxy version that § 2.1 lists, and
+// the networks whose official proxy factory of that version deploys it.
+type safeProxy struct {
+	version  string
+	networks []uint64
+}
+
 // safeProxyCodeHashes maps the Keccak-256 hash of the code of each SafeProxy
 // contract of the proxy versions that § 2.1 lists, 1.0.0, 1.1.1, 1.3.0, 1.4.1,
-// and 1.5.0, to the networks whose official proxy factory of that version
-// deploys it. The code is the factory's proxyRuntimeCode for 1.0.0, 1.1.1, and
-// 1.3.0, which is the code of the proxies that it creates. A proxy has the same
-// code however it was deployed, since its code doesn't depend on its singleton,
-// which it keeps in storage.
+// and 1.5.0, to its version and the networks whose official proxy factory of
+// that version deploys it. The code is the factory's proxyRuntimeCode for
+// 1.0.0, 1.1.1, and 1.3.0, which is the code of the proxies that it creates. A
+// proxy has the same code however it was deployed, since its code doesn't
+// depend on its singleton, which it keeps in storage.
 //
 // The 1.0.0 and 1.1.1 proxy factories are only deployed on Ethereum Mainnet and
 // Gnosis Chain. The 1.1.1 factory has the same address on both, but its code on
@@ -30,26 +37,34 @@ import (
 // safe-deployments repository lists it, on the network. The 1.0.0 artifact
 // matches no deployed proxy, nor does the 1.1.1 artifact match the proxies on
 // Gnosis Chain, so those hashes come from the factories only.
-var safeProxyCodeHashes = map[ethrpc.Hash][]uint64{
-	// 1.0.0: proxyRuntimeCode of the ProxyFactory
+var safeProxyCodeHashes = map[ethrpc.Hash]safeProxy{
+	// proxyRuntimeCode of the ProxyFactory
 	// 0x12302fE9c02ff50939BaAaaf415fc226C078613C on Ethereum Mainnet and Gnosis
 	// Chain.
-	ethrpc.MustParseHash("0xf8fffcb9b9c73fbc4ffb6dc52f0001fa998951e0d4177894b1b899f7732b6eaf"): {ethrpc.Mainnet, ethrpc.Gnosis},
-	// 1.1.1: @gnosis.pm/safe-contracts@1.1.1/build/contracts/Proxy.json, and
+	ethrpc.MustParseHash("0xf8fffcb9b9c73fbc4ffb6dc52f0001fa998951e0d4177894b1b899f7732b6eaf"): {"1.0.0", []uint64{ethrpc.Mainnet, ethrpc.Gnosis}},
+	// @gnosis.pm/safe-contracts@1.1.1/build/contracts/Proxy.json, and
 	// proxyRuntimeCode of the ProxyFactory
 	// 0x76E2cFc1F5Fa8F6a5b3fC4c8F4788F0116861F9B on Ethereum Mainnet.
-	ethrpc.MustParseHash("0xaea7d4252f6245f301e540cfbee27d3a88de543af8e49c5c62405d5499fab7e5"): {ethrpc.Mainnet},
-	// 1.1.1: proxyRuntimeCode of the same ProxyFactory on Gnosis Chain.
-	ethrpc.MustParseHash("0x30cf24338d14750aab3433d8bb0cedd0e1263ee1f4f5f84cc482f3541ce61ad5"): {ethrpc.Gnosis},
-	// 1.3.0:
+	ethrpc.MustParseHash("0xaea7d4252f6245f301e540cfbee27d3a88de543af8e49c5c62405d5499fab7e5"): {"1.1.1", []uint64{ethrpc.Mainnet}},
+	// proxyRuntimeCode of the same ProxyFactory on Gnosis Chain.
+	ethrpc.MustParseHash("0x30cf24338d14750aab3433d8bb0cedd0e1263ee1f4f5f84cc482f3541ce61ad5"): {"1.1.1", []uint64{ethrpc.Gnosis}},
 	// @gnosis.pm/safe-contracts@1.3.0/build/artifacts/contracts/proxies/GnosisSafeProxy.sol/GnosisSafeProxy.json
-	ethrpc.MustParseHash("0xb89c1b3bdf2cf8827818646bce9a8f6e372885f8c55e5c07acbd307cb133b000"): networks,
-	// 1.4.1:
+	ethrpc.MustParseHash("0xb89c1b3bdf2cf8827818646bce9a8f6e372885f8c55e5c07acbd307cb133b000"): {"1.3.0", networks},
 	// @safe-global/safe-contracts@1.4.1/build/artifacts/contracts/proxies/SafeProxy.sol/SafeProxy.json
-	ethrpc.MustParseHash("0xd7d408ebcd99b2b70be43e20253d6d92a8ea8fab29bd3be7f55b10032331fb4c"): networks,
-	// 1.5.0:
+	ethrpc.MustParseHash("0xd7d408ebcd99b2b70be43e20253d6d92a8ea8fab29bd3be7f55b10032331fb4c"): {"1.4.1", networks},
 	// @safe-global/safe-smart-account@1.5.0/build/artifacts/contracts/proxies/SafeProxy.sol/SafeProxy.json
-	ethrpc.MustParseHash("0x4e381985ca68b3e5d27b4425fa581c19cf33146d3f887a3cfca96f55528ea46f"): networks,
+	ethrpc.MustParseHash("0x4e381985ca68b3e5d27b4425fa581c19cf33146d3f887a3cfca96f55528ea46f"): {"1.5.0", networks},
+}
+
+// proxyVersion returns the proxy version of § 2.1 whose official proxy factory
+// deploys a SafeProxy with code on the network with chainID, or "" if there is
+// none.
+func proxyVersion(code []byte, chainID uint64) string {
+	proxy := safeProxyCodeHashes[ethrpc.Hash(keccak256.Hash(code))]
+	if !slices.Contains(proxy.networks, chainID) {
+		return ""
+	}
+	return proxy.version
 }
 
 // singletons are the Safe and SafeL2 singletons of the Safe versions that the
@@ -124,7 +139,7 @@ func safeVersion(ctx context.Context, env *env, safe *safeID) (string, error) {
 		return "", err
 	}
 	var version string
-	if slices.Contains(safeProxyCodeHashes[ethrpc.Hash(keccak256.Hash(code))], key.chainID) {
+	if proxyVersion(code, key.chainID) != "" {
 		slot0, err := client.GetStorageAt(ctx, safe.address, ethrpc.Hash{}, block)
 		if err != nil {
 			return "", err
