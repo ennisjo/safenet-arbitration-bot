@@ -22,7 +22,6 @@ const (
 	Unclassified Verdict = ""
 	Secure       Verdict = "secure"
 	Insecure     Verdict = "insecure"
-	OutOfScope   Verdict = "out-of-scope"
 )
 
 // String returns the verdict's name, which is "unclassified" for Unclassified.
@@ -111,10 +110,11 @@ var checks = []check{
 	emptyZeroAddressCallCheck,
 }
 
-// verdictOrder is the order of the verdicts of checks: a request that is out of
-// scope gets no security ruling, and a request that fails a rule is insecure,
-// whatever else holds for it (Charter § 3.9 and § 3.7).
-var verdictOrder = []Verdict{OutOfScope, Insecure, Secure}
+// verdictOrder is the order of the verdicts of checks: a request that fails a
+// rule is insecure, whatever else holds for it (Charter § 3.7). There are no
+// out-of-scope checks, since R-4.0 applies to every transaction, on any
+// network, so every transaction is in the scope of Article I (§ 3.9).
+var verdictOrder = []Verdict{Insecure, Secure}
 
 // List returns the classifications of the checks, in the order that Classify
 // runs them.
@@ -126,12 +126,12 @@ func List() []Classification {
 	return list
 }
 
-// Classify classifies request. It runs the out-of-scope and insecure checks, in
-// order, on each call that the Safe makes, and returns the classification of
-// the first one that matches a call. If none do, and a secure check matches
-// every call, the request is secure, with the descriptions of the first secure
-// check that matches each call. Otherwise, it is Unclassified. Checks read the
-// state of the Safe's chain at the proposal's SafeBlock, connecting with dial.
+// Classify classifies request. It runs the insecure checks, in order, on each
+// call that the Safe makes, and returns the classification of the first one
+// that matches a call. If none do, and a secure check matches every call, the
+// request is secure, with the descriptions of the first secure check that
+// matches each call. Otherwise, it is Unclassified. Checks read the state of
+// the Safe's chain at the proposal's SafeBlock, connecting with dial.
 func Classify(ctx context.Context, dial ethrpc.Dialer, request *safenet.Request) (Classification, error) {
 	return classify(ctx, checks, dial, request)
 }

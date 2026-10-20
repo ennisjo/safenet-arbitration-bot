@@ -32,9 +32,8 @@ Past rulings are in `corpus/`, one file per request, named `corpus/<request-id>.
 
 ## The Case
 
-Decide which verdict the evidence best supports, under the Charter's ruling standard (Article III):
+Decide which verdict the evidence best supports, under the Charter's ruling standard (Article III). No request is `out of scope`: R-4.0 applies to every transaction, on any network, so every transaction is in the scope of Article I (§ 3.9), and a transaction on a network that Article I doesn't list, or for an address that isn't a Safe (§ 2.1), is insecure under R-4.0.
 
-- **`out of scope`**: the request is outside the transaction-security scope of Article I, as § 3.9 defines it. Cite the provision it falls outside of. A transaction on a network that Article I doesn't list, or for an address that isn't a Safe (§ 2.1), isn't out of scope: it is insecure under R-4.0.
 - **`insecure`**: the transaction fails an Article IV rule (§ 3.7). Cite the rule. A deterministic rule fails by direct application, and a principle-based rule fails only on a reasonable finding grounded in the evidence (§ 3.8). If admissible evidence is genuinely evenly balanced on a material security question, the transaction is insecure (§ 3.8). If it fails several rules, rest the case on the one the evidence supports most directly, and name the others.
 - **`secure`**: the transaction passes every Article IV rule (§ 3.7). Address each rule in turn, and cite the evidence that it passes.
 

@@ -27,11 +27,6 @@ func TestClassification(t *testing.T) {
 			"insecure  R-4.1  adds an owner",
 			`{"verdict":"insecure","rule":"R-4.1","description":"adds an owner"}`,
 		},
-		{
-			Classification{Verdict: OutOfScope, Description: "not a Safe"},
-			"out-of-scope  not a Safe",
-			`{"verdict":"out-of-scope","description":"not a Safe"}`,
-		},
 	}
 	for _, test := range tests {
 		if got := test.c.String(); got != test.text {
@@ -87,7 +82,6 @@ func TestClassify(t *testing.T) {
 
 	secure := match(Secure, "signs a message")
 	insecure := match(Insecure, "adds an owner")
-	outOfScope := match(OutOfScope, "not a Safe")
 	// A transaction whose call is to target, and that pays an ether refund to
 	// receiver.
 	refunded := safenet.SafeTransaction{To: target, GasPrice: big.NewInt(1), RefundReceiver: receiver}
@@ -107,16 +101,9 @@ func TestClassify(t *testing.T) {
 			insecure.classification(),
 			nil,
 		},
-		{
-			"out of scope before insecure",
-			safenet.SafeTransaction{},
-			[]check{outOfScope, insecure, secure},
-			outOfScope.classification(),
-			nil,
-		},
 		{"insecure before secure", safenet.SafeTransaction{}, []check{abstain, insecure, secure}, insecure.classification(), nil},
 		{"error", safenet.SafeTransaction{}, []check{abstain, fail, insecure}, Classification{}, errCheck},
-		{"match before error", safenet.SafeTransaction{}, []check{outOfScope, fail}, outOfScope.classification(), nil},
+		{"match before error", safenet.SafeTransaction{}, []check{insecure, fail}, insecure.classification(), nil},
 		{"error before match", safenet.SafeTransaction{}, []check{fail, secure}, Classification{}, errCheck},
 		{"secure error", safenet.SafeTransaction{}, []check{failSecure, secure}, Classification{}, errCheck},
 		{"secure match before error", safenet.SafeTransaction{}, []check{secure, failSecure}, secure.classification(), nil},

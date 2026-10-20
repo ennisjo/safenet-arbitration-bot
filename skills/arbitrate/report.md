@@ -14,11 +14,11 @@ If no case was accepted, replace the note above with this one:
 
 ## Verdict
 
-**`{{secure, insecure, or out of scope}}`** under {{rule, such as `R-4.1`, or section, such as § 3.9}}
+**`{{secure or insecure}}`** under {{rule, such as `R-4.1`, or section, such as § 3.7}}
 
 - **Decided by**: {{"`arbot classify`: <description>", "the `prosecutor`'s case, accepted by the `judge` in round <n>", or "no accepted case"}}
 - **Reason**: {{one to three sentences: the rule, the fact that decides it, and why no exception applies}}
-- **Onchain action**: `{{resolveDispute(<request-id>, false, context) for insecure, resolveDispute(<request-id>, true, context) for secure, or markOutOfScope(<request-id>, context) for out of scope}}`, by Gnosis Chain block {{deadline}}
+- **Onchain action**: `{{resolveDispute(<request-id>, false, context) for insecure, or resolveDispute(<request-id>, true, context) for secure}}`, by Gnosis Chain block {{deadline}}
 
 ## Request
 
@@ -58,7 +58,6 @@ Quote, verbatim from the fetched Charter, each provision that the verdict rests 
 
 - insecure: the rule that the transaction breaks, and each of its exceptions, with why it doesn't apply;
 - secure: for each Article IV rule, the text, exception, or definition that the transaction passes it by, and § 3.7;
-- out of scope: the provision of Article I that the request falls outside of, and § 3.9;
 - the ruling standard that decides it, such as § 3.7 for a deterministic rule, or § 3.8 for a principle-based one.
 -->
 

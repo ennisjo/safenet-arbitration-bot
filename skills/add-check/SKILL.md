@@ -1,13 +1,13 @@
 ---
 name: add-check
-description: Add a deterministic check that classifies Safenet requests as insecure, out-of-scope, or secure under the Safenet Arbitration Charter. Use when turning a Charter rule, part of a rule, or a precedent pattern into Go code that `arbot classify` runs.
+description: Add a deterministic check that classifies Safenet requests as insecure or secure under the Safenet Arbitration Charter. Use when turning a Charter rule, part of a rule, or a precedent pattern into Go code that `arbot classify` runs.
 ---
 
 # Add a Deterministic Check
 
 A check is a `check` value in `internal/checks` that decides a class of calls that a Safe makes, by direct application of the Charter, without judgment. It has the verdict for its class, the rule ID for an `insecure` verdict, a short description of the class, and a function that reports whether a call is in the class. `arbot classify` runs the checks in the `checks` variable in `internal/checks/checks.go`:
 
-- the `out-of-scope` checks, then the `insecure` ones, run on every call, and the first check that matches a call decides the request;
+- the `insecure` checks run on every call, and the first check that matches a call decides the request;
 - otherwise, the request is `secure` if a `secure` check matches every call, and unclassified if any call matches none.
 
 `arbot classify -list` lists them in that order. Requests that every check abstains on go to the LLM stage, so a check that abstains when in doubt costs little, and one that decides wrongly misleads the Council.
@@ -16,7 +16,7 @@ A check is a `check` value in `internal/checks` that decides a class of calls th
 
 Before writing any code, make sure you have:
 
-- **The case**: the class of calls the check decides, and the verdict it returns for them: `insecure` under a rule ID such as `R-4.1`, `out-of-scope` under § 3.9, or `secure`.
+- **The case**: the class of calls the check decides, and the verdict it returns for them: `insecure` under a rule ID such as `R-4.1`, or `secure`. There are no `out-of-scope` checks: R-4.0 applies to every transaction, on any network, so every transaction is in the scope of Article I (§ 3.9). A Safe on a network that Article I doesn't list, or an account that isn't a Safe (§ 2.1), is insecure under R-4.0.
 - **The Charter text**: the rule, its exceptions, and the definitions it uses, from the Charter version that applies to the requests the check is for. Fetch it with `arbot charter`, or `arbot charter -request-file <path>` for a request that `arbot info -json` wrote.
 - **Example requests**, if any: IDs of requests that the check should decide, and of similar ones that it should abstain on. Past rulings in `corpus/` are a good source: scan them with `head -n 10 corpus/*.md`, and list the tags of one with `arbot tags <request-id>`.
 
@@ -27,7 +27,6 @@ Ask the user for any input that the request doesn't settle. Don't guess a rule I
 Check that the case can be decided in code before writing it (invariant 2 in `AGENTS.md`, and § 3.7 of the Charter):
 
 - **`insecure`**: the rule must be a deterministic one, in Part A of Article IV, or a codified rule that the Charter treats as deterministic. Principle-based rules, such as the target-manipulation rules of Part B, need an evidence-grounded Council finding, so a check can't decide them. The check must also rule out every exception to the rule. If an exception can't be ruled out from the data, abstain.
-- **`out-of-scope`**: the request must be outside the transaction-security scope of Article I, as § 3.9 defines it, as a matter of fact rather than judgment. A Safe on a network that Article I doesn't list, or an account that isn't a Safe (§ 2.1), isn't out of scope: it is insecure under R-4.0.
 - **`secure`**: a transaction is secure only if it passes every rule of Article IV. A `secure` check therefore matches only a class of calls that has no effect that any rule considers, whatever the other calls in the transaction do, so that a transaction whose calls all match `secure` checks passes every rule. An example is a delegate call to MultiSend with no transactions. A call that is only secure on its own, such as a transfer that a principle-based rule could weigh with others, doesn't qualify, and neither does a delegate call to `signMessage` of `SignMessageLib`, which passes R-4.2 but signs a message that can authorize a transfer out of the Safe, such as a trade intent order. A check that only shows that its own rule isn't broken must abstain.
 
 If the case needs judgment anywhere, stop and tell the user why it isn't deterministic, rather than writing a check that approximates it.
@@ -39,14 +38,14 @@ A check receives one call at a time, with the `safeID` of the Safe that makes it
 ## Steps
 
 1. **Write the check** in its own file, `internal/checks/<name>.go`, where `<name>` is a lowercase, underscored name for what it decides, such as `settings_change.go`. Declare it as a `check` variable, with a comment that quotes or paraphrases the rule, cites its ID and sections, and names the Charter version it was written against (its IPFS CID). Its fields are:
-   - `verdict`: `OutOfScope`, `Insecure`, or `Secure`;
+   - `verdict`: `Insecure` or `Secure`;
    - `rule`: the rule ID, such as `R-4.1`, for `Insecure` only;
    - `description`: a short, lowercase description of the class, such as `calls addOwnerWithThreshold on the Safe`. `arbot classify` prints it after the verdict and the rule, on one line, for every request in the class, so it must hold for all of them;
    - `fn`: a function that reports whether a call is in the class. It returns `false` whenever the call isn't clearly in the class, so that the check abstains. It returns an error only when it can't read them, never to express a verdict. It decodes call data with `internal/solabi`, and compares addresses and hashes as `ethrpc` values rather than strings.
 
    If one rule decides several classes, such as different settings changes, write one check per class, each with its own description.
 
-2. **Register the check** in the `checks` variable, which lists the checks in the order that they run, grouped by verdict: the `out-of-scope` ones, then the `insecure` ones, then the `secure` ones. Add it at the end of its verdict's group, unless it must run before another check with the same verdict. A request that matches two checks with different verdicts is a bug in one of them, not a matter of order. `TestChecks` checks that the checks are grouped by verdict, and that every check has a verdict, a description, a function, and a rule only if it is `insecure`.
+2. **Register the check** in the `checks` variable, which lists the checks in the order that they run, grouped by verdict: the `insecure` ones, then the `secure` ones. Add it at the end of its verdict's group, unless it must run before another check with the same verdict. A request that matches two checks with different verdicts is a bug in one of them, not a matter of order. `TestChecks` checks that the checks are grouped by verdict, and that every check has a verdict, a description, a function, and a rule only if it is `insecure`.
 
 3. **Test the check** in `internal/checks/<name>_test.go`, with a table of calls, or of requests built with the `request` helper in `checks_test.go` to go through `components`. Cover:
    - each way the request can be in the class;

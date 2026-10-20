@@ -22,7 +22,7 @@ func classify(ctx context.Context, e *env, args []string) error {
 		fmt.Fprintf(flags.Output(), "       %s classify [flags] -request-file <path>\n", e.progname)
 		fmt.Fprintf(flags.Output(), "       %s classify [flags] -list\n\n", e.progname)
 		fmt.Fprintf(flags.Output(), "Classifies a Safenet request with the deterministic checks of the Charter's rules, as one of:\n\n")
-		fmt.Fprintf(flags.Output(), "  unclassified\n  secure\n  insecure  <rule>  <description>\n  out-of-scope  <description>\n\n")
+		fmt.Fprintf(flags.Output(), "  unclassified\n  secure\n  insecure  <rule>  <description>\n\n")
 		flags.PrintDefaults()
 	}
 	if err := parse(flags, args, -1); err != nil {

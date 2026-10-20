@@ -21,7 +21,6 @@ Take every fact in the case's Material evidence as accurate. Judge everything el
 - **Citations**: each rule, definition, and section that the case cites says what the case says it does, and applies to the request.
 - **Evidence**: the argument uses only the facts in its Material evidence. They are admissible (§ 3.3 to § 3.5), and as of the proposal (§ 2.8 and § 3.6), as the case describes them. Offchain evidence has its source, observation time, and reliability basis (§ 3.4).
 - **Verdict**: the verdict follows from the argument under the Charter's ruling standard (Article III):
-  - `out of scope`: the request falls outside the transaction-security scope of Article I, as § 3.9 defines it;
   - `insecure` under a deterministic rule: the rule applies directly, and the case rules out each of its exceptions (§ 3.7);
   - `insecure` under a principle-based rule: the finding is reasonable and grounded in the evidence (§ 3.8). A case that rests on § 3.8's ambiguity standard shows that the evidence is genuinely evenly balanced on a material security question, not only that there is minor ambiguity;
   - `secure`: the case addresses every Article IV rule, and shows that the transaction passes each one (§ 3.7).
