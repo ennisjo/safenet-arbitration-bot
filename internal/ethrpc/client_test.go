@@ -419,7 +419,7 @@ func connect(t *testing.T, url string) *Client {
 
 func TestRequestHTTPError(t *testing.T) {
 	url, _ := node(t, "0x1", func(w http.ResponseWriter, id uint64) {
-		http.Error(w, "rate limited", http.StatusTooManyRequests)
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
 	})
 	if _, err := connect(t, url).Call(t.Context(), CallRequest{}, 1); err == nil {
 		t.Fatal("Call: expected an error")

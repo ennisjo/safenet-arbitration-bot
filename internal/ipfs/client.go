@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/safe-research/safenet-arbitration-bot/internal/httpretry"
 	"github.com/safe-research/safenet-arbitration-bot/internal/xdg"
 )
 
@@ -49,7 +50,7 @@ func NewClient(url string) *Client {
 	if dir := xdg.CacheHome(); dir != "" {
 		cache = filepath.Join(dir, "arbot", "ipfs")
 	}
-	return &Client{http: http.DefaultClient, cache: cache, url: url}
+	return &Client{http: httpretry.Client, cache: cache, url: url}
 }
 
 // Fetch returns the content addressed by cid. Content is immutable, so it is

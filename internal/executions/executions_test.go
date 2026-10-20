@@ -185,7 +185,7 @@ func service(t *testing.T, transactions map[ethrpc.Hash]*safenet.SafeTransaction
 		tx := transactions[h]
 		switch {
 		case slices.Contains(failing, h):
-			http.Error(w, "\x1b[31mrate limited", http.StatusTooManyRequests)
+			http.Error(w, "\x1b[31munavailable", http.StatusServiceUnavailable)
 		case !ok || err != nil || tx == nil:
 			http.NotFound(w, r)
 		default:
@@ -374,7 +374,7 @@ func TestFindServiceFailure(t *testing.T) {
 			t.Errorf("warning %q has a terminal escape sequence", w)
 		}
 	}
-	if !slices.ContainsFunc(warnings, func(w error) bool { return strings.Contains(w.Error(), "429") }) {
+	if !slices.ContainsFunc(warnings, func(w error) bool { return strings.Contains(w.Error(), "503") }) {
 		t.Errorf("warnings: got %v, want one with the HTTP status", warnings)
 	}
 }

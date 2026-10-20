@@ -97,9 +97,9 @@ func TestTransactionErrors(t *testing.T) {
 	}
 
 	// The body of an error is quoted, as it isn't trusted.
-	_, err := serve(t, http.StatusTooManyRequests, "\x1b[31mtoo many requests").Transaction(t.Context(), hash)
-	if err == nil || !strings.Contains(err.Error(), "429") || strings.Contains(err.Error(), "\x1b") {
-		t.Errorf("Transaction with a rate limit: got error %q, want one with the status and no escape sequence", err)
+	_, err := serve(t, http.StatusServiceUnavailable, "\x1b[31munavailable").Transaction(t.Context(), hash)
+	if err == nil || !strings.Contains(err.Error(), "503") || strings.Contains(err.Error(), "\x1b") {
+		t.Errorf("Transaction of an unavailable service: got error %q, want one with the status and no escape sequence", err)
 	}
 
 	for name, body := range map[string]string{

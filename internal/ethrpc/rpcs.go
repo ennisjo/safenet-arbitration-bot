@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+
+	"github.com/safe-research/safenet-arbitration-bot/internal/httpretry"
 )
 
 // RPCListURL is Chainlist's list of public RPC endpoints, a JSON array of
@@ -33,7 +35,7 @@ type rpcList struct {
 	rpcs map[uint64][]string
 }
 
-var defaultRPCs = &rpcList{url: RPCListURL, http: http.DefaultClient}
+var defaultRPCs = &rpcList{url: RPCListURL, http: httpretry.Client}
 
 // DefaultRPCs returns the public HTTP(S) RPC URLs from RPCListURL for the chain
 // with the given ID. The list is downloaded at most once per process.

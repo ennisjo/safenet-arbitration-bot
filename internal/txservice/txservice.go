@@ -18,6 +18,7 @@ import (
 	"net/url"
 
 	"github.com/safe-research/safenet-arbitration-bot/internal/ethrpc"
+	"github.com/safe-research/safenet-arbitration-bot/internal/httpretry"
 	"github.com/safe-research/safenet-arbitration-bot/internal/safenet"
 )
 
@@ -47,7 +48,7 @@ type Client struct {
 // "https://api.safe.global/tx-service/eth", which serves the Safes of the chain
 // with the given ID.
 func NewClient(baseURL string, chainID uint64) *Client {
-	return &Client{http: http.DefaultClient, baseURL: baseURL, chainID: new(big.Int).SetUint64(chainID)}
+	return &Client{http: httpretry.Client, baseURL: baseURL, chainID: new(big.Int).SetUint64(chainID)}
 }
 
 // Transaction returns the Safe transaction that the service has with the Safe

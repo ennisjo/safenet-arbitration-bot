@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"sync/atomic"
 	"time"
+
+	"github.com/safe-research/safenet-arbitration-bot/internal/httpretry"
 )
 
 // Client sends JSON-RPC requests to a single Ethereum node over HTTP.
@@ -35,7 +37,7 @@ var connectTimeout = 1 * time.Second
 // call encodings, so a wrong chain would go unnoticed otherwise.
 func NewClient(ctx context.Context, chainID uint64, url string) (*Client, error) {
 	if url != "" {
-		c := &Client{chainID: chainID, url: url, http: http.DefaultClient}
+		c := &Client{chainID: chainID, url: url, http: httpretry.Client}
 		if err := c.checkChainID(ctx); err != nil {
 			return nil, err
 		}
@@ -48,7 +50,7 @@ func NewClient(ctx context.Context, chainID uint64, url string) (*Client, error)
 	}
 	var errs []error
 	for _, url := range urls {
-		c := &Client{chainID: chainID, url: url, http: http.DefaultClient}
+		c := &Client{chainID: chainID, url: url, http: httpretry.Client}
 		checkCtx, cancel := context.WithTimeout(ctx, connectTimeout)
 		err := c.checkChainID(checkCtx)
 		cancel()

@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+
+	"github.com/safe-research/safenet-arbitration-bot/internal/httpretry"
 )
 
 // GatewayListURL is the list of public HTTP gateways maintained by the IPFS
@@ -31,7 +33,7 @@ type gatewayList struct {
 	gateways []string
 }
 
-var defaultGateways = &gatewayList{url: GatewayListURL, http: http.DefaultClient}
+var defaultGateways = &gatewayList{url: GatewayListURL, http: httpretry.Client}
 
 // DefaultGateways returns the public gateways from GatewayListURL. The list is
 // downloaded at most once per process.
